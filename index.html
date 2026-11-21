@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TechHub — SaaS & AI Tools Discovery & Admin Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <!-- Optional EmailJS SDK for real Gmail OTP delivery when configured in app.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+  <!-- TOP NAVBAR -->
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="#home" class="brand" data-route="home">
+        <div class="brand-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 19.5H22L12 2Z" fill="#2563EB"/>
+            <path d="M12 8.5L6.5 18H17.5L12 8.5Z" fill="#60A5FA"/>
+          </svg>
+        </div>
+        <span class="brand-name">TechHub</span>
+      </a>
+
+      <nav class="nav-links" id="navLinks">
+        <a href="#home" class="nav-link active" data-route="home">Explore</a>
+        <a href="#directory" class="nav-link" data-route="directory">All Products <span class="badge-pill" id="navTotalCount">10</span></a>
+        <a href="#compare" class="nav-link" data-route="compare">Compare <span class="badge-pill" id="compareCountBadge">3</span></a>
+        <a href="#adviser" class="nav-link" data-route="adviser">AI Finder</a>
+        <a href="#dashboard" class="nav-link" data-route="dashboard">Saved Tools <span class="badge-pill" id="navFavCount">0</span></a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="icon-btn" id="quickSearchBtn" title="Quick Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+        </button>
+        <button class="btn btn-primary" id="openSubmitModalBtn">+ Submit Your Tool</button>
+        <button class="btn btn-admin" id="adminHeaderBtn">
+          <span class="admin-dot" id="adminStatusDot"></span>
+          <span id="adminBtnLabel">🛡️ Admin Login</span>
+        </button>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- VIEW 1: HOME / DISCOVERY LANDING -->
+  <main id="view-home" class="view active">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-content">
+          <span class="hero-eyebrow">✨ Curated SaaS & AI Directory</span>
+          <h1>Discover. Compare. Choose.</h1>
+          <p class="hero-subtitle">Explore verified SaaS, AI tools, design apps, and developer platforms — or list your own product live in seconds.</p>
+
+          <div class="hero-search-wrap">
+            <div class="hero-search-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+              <input type="text" id="heroSearchInput" placeholder="Search real listed tools (e.g., ChatGPT, Cursor, Figma)..." autocomplete="off" />
+              <button class="btn btn-primary" id="heroSearchBtn">Search</button>
+            </div>
+            <div class="search-dropdown hidden" id="heroSearchDropdown"></div>
+          </div>
+
+          <div class="popular-searches">
+            <span>Quick Filters:</span>
+            <button class="search-tag" data-search="AI Tools">AI Tools</button>
+            <button class="search-tag" data-search="Productivity">Productivity</button>
+            <button class="search-tag" data-search="Design">Design</button>
+            <button class="search-tag" data-search="Developer Tools">Developer Tools</button>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="mockup-window">
+            <div class="mockup-header">
+              <span></span><span></span><span></span>
+              <small>Live Directory Overview</small>
+            </div>
+            <div class="mockup-body">
+              <div class="mockup-stat-row">
+                <div class="m-card">
+                  <small>Listed Tools</small>
+                  <strong id="heroLiveToolCount">10</strong>
+                </div>
+                <div class="m-card">
+                  <small>Active Categories</small>
+                  <strong id="heroLiveCatCount">4</strong>
+                </div>
+              </div>
+              <div class="mockup-match">
+                <div class="m-badge">Open Listing</div>
+                <div>
+                  <strong>Built a SaaS or AI Web App?</strong>
+                  <p>Add your logo, URL, category & publish live immediately.</p>
+                </div>
+              </div>
+              <button class="btn btn-primary" style="width:100%;" id="heroSubmitCtaBtn">+ List Your Product Free</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REAL CATEGORY STRIP -->
+    <section class="category-strip-section">
+      <div class="container">
+        <div class="category-strip" id="quickCategoryStrip"></div>
+      </div>
+    </section>
+
+    <!-- FEATURED / NEWLY LISTED PRODUCTS -->
+    <section class="section">
+      <div class="container">
+        <div class="section-header">
+          <h2>🔥 Featured & Newly Listed Products</h2>
+          <a href="#directory" class="link-arrow" data-route="directory">View All (<span id="homeAllCount">10</span>) →</a>
+        </div>
+        <div class="trending-grid" id="trendingProductsGrid"></div>
+      </div>
+    </section>
+
+    <!-- REAL CATEGORIES & LATEST SUBMISSIONS -->
+    <section class="section section-alt">
+      <div class="container split-home-grid">
+        <div>
+          <div class="section-header">
+            <h2>Browse by Category</h2>
+            <a href="#directory" class="link-arrow" data-route="directory">Open Directory →</a>
+          </div>
+          <div class="popular-cat-grid" id="popularCategoriesGrid"></div>
+        </div>
+
+        <div>
+          <div class="section-header">
+            <h2>🆕 Latest Submissions</h2>
+            <button class="text-btn" id="inlineSubmitTrigger">+ Add Yours</button>
+          </div>
+          <div class="launches-list" id="latestLaunchesList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- VIEW 2: ALL PRODUCTS DIRECTORY -->
+  <main id="view-directory" class="view">
+    <section class="page-header">
+      <div class="container" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h1>All Listed Products</h1>
+          <p>Showing only real, verified entries currently available in the directory.</p>
+        </div>
+        <button class="btn btn-primary" id="dirSubmitBtn">+ Submit Your Tool</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container directory-layout">
+        <aside class="filters-sidebar">
+          <div class="filter-group">
+            <div class="filter-title-row">
+              <h3>Filters</h3>
+              <button class="text-btn" id="resetFiltersBtn">Reset</button>
+            </div>
+            <input type="text" id="dirSearchInput" class="input" placeholder="Search name, keyword, URL..." />
+          </div>
+
+          <div class="filter-group">
+            <h4>Categories (Real Count)</h4>
+            <div id="categoryFilterList" class="checkbox-list"></div>
+          </div>
+
+          <div class="filter-group">
+            <h4>Pricing Model</h4>
+            <div class="checkbox-list">
+              <label><input type="checkbox" class="pricing-filter" value="Free" /> Free</label>
+              <label><input type="checkbox" class="pricing-filter" value="Freemium" /> Freemium</label>
+              <label><input type="checkbox" class="pricing-filter" value="Paid" /> Paid</label>
+            </div>
+          </div>
+        </aside>
+
+        <div class="directory-content">
+          <div class="directory-toolbar">
+            <span id="directoryCountText">Showing 10 products</span>
+            <select id="sortSelect" class="input select-sm">
+              <option value="newest">Sort: Latest Added</option>
+              <option value="rating">Sort: Highest Rated</option>
+              <option value="name">Sort: A to Z</option>
+            </select>
+          </div>
+          <div class="products-grid" id="directoryProductsGrid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- VIEW 3: PRODUCT DETAIL PAGE -->
+  <main id="view-detail" class="view">
+    <section class="section">
+      <div class="container" id="productDetailContainer"></div>
+    </section>
+  </main>
+
+  <!-- VIEW 4: COMPARE PRODUCTS -->
+  <main id="view-compare" class="view">
+    <section class="page-header">
+      <div class="container">
+        <h1>Compare Products Side-by-Side</h1>
+        <p>Select any listed tools to compare features, pricing, and official website links.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="compare-table-wrap" id="compareMatrixContainer"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- VIEW 5: AI PRODUCT FINDER / ADVISER -->
+  <main id="view-adviser" class="view">
+    <section class="adviser-hero">
+      <div class="container adviser-box">
+        <div class="adviser-bot-icon">🤖</div>
+        <h1>Find Your Perfect Tool</h1>
+        <p>Describe your workflow or problem — we match you strictly against real tools listed in this directory.</p>
+
+        <form id="adviserForm" class="adviser-form">
+          <input type="text" id="adviserPromptInput" placeholder="e.g., I need an AI coding assistant or a UI design tool..." required />
+          <div class="adviser-presets">
+            <button type="button" class="preset-chip" data-prompt="AI coding and research tools for developers">💻 Dev & AI Coding</button>
+            <button type="button" class="preset-chip" data-prompt="Workspace and productivity tools for teams">⚡ Productivity</button>
+            <button type="button" class="preset-chip" data-prompt="Graphic and UI/UX design software">🎨 UI & Graphics</button>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg">Find Matching Tools ✨</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container" id="adviserResultsContainer"></div>
+    </section>
+  </main>
+
+  <!-- VIEW 6: USER SAVED TOOLS ONLY (CLEAN — NO VISITOR SUBMISSIONS SHOWN HERE) -->
+  <main id="view-dashboard" class="view">
+    <section class="page-header">
+      <div class="container" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h2>❤️ My Saved Tools</h2>
+          <p class="muted">Your personal bookmarked SaaS & AI tools collection.</p>
+        </div>
+        <div class="saved-badge-pill">
+          Total Saved: <strong id="kpiFavorites">0</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="products-grid" id="dashboardFavoritesGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- VIEW 7: PROTECTED ADMIN PANEL (UNLOCKED ONLY AFTER AUTHORIZED GMAIL + OTP) -->
+  <main id="view-admin" class="view">
+    <section class="admin-banner">
+      <div class="container" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+        <div>
+          <span class="admin-chip">🛡️ VERIFIED ADMIN SESSION</span>
+          <h1 style="margin-top:6px;">Admin Control Center</h1>
+          <p style="color:#CBD5E1; font-size:0.9rem;">Logged in as: <strong id="loggedInAdminEmail" style="color:#fff;"></strong></p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" id="adminAddToolBtn">+ Add Tool Directly</button>
+          <button class="btn btn-danger" id="adminLogoutBtn">Logout Admin</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <!-- ADMIN REAL KPI CARDS -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-num" id="adminTotalVisitorsCount">0</span>
+            <span class="kpi-label">Visitor Published Tools</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-num" id="adminTotalCatalogCount">10</span>
+            <span class="kpi-label">Total Live Directory Tools</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-num" id="adminCategoryCount">4</span>
+            <span class="kpi-label">Active Categories</span>
+          </div>
+        </div>
+
+        <!-- VISITOR PUBLISHED TOOLS FULL AUDIT TABLE -->
+        <div class="card-box mt-24">
+          <div class="section-header">
+            <div>
+              <h3>📋 Visitor Published Tools & Full Details</h3>
+              <p class="muted">Complete log of every website/tool published by visitors, including logo, link, category, description, and timestamp.</p>
+            </div>
+          </div>
+          <div id="adminVisitorTableWrap" class="table-responsive"></div>
+        </div>
+
+        <!-- ALL DIRECTORY TOOLS MANAGEMENT (WITH CATEGORY FILTER, SEARCH & REMOVE) -->
+        <div class="card-box mt-24" style="border-top: 4px solid #2563EB;">
+          <div class="section-header" style="flex-wrap:wrap; gap:12px;">
+            <div>
+              <h3>🗂️ All Live Tools Manager (<span id="adminLiveFilteredCount">10</span>)</h3>
+              <p class="muted">Filter live tools by category or name, and permanently remove any tool from the website.</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <input type="text" id="adminLiveSearchInput" class="input" style="width:210px;" placeholder="Search live tool..." />
+              <select id="adminLiveCategoryFilter" class="input" style="width:190px;">
+                <option value="ALL">All Categories</option>
+              </select>
+            </div>
+          </div>
+          <div id="adminAllToolsTableWrap" class="table-responsive"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ADMIN GMAIL + OTP LOGIN MODAL -->
+  <div id="adminAuthModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card admin-modal-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="admin-shield-icon">🔐</div>
+          <div>
+            <h2>Admin Verification</h2>
+            <p class="muted">Authorized Email ID & Password Required</p>
+          </div>
+        </div>
+        <button class="icon-btn" id="closeAdminModalBtn" aria-label="Close">✕</button>
+      </div>
+
+      <!-- ADMIN EMAIL ID + PASSWORD LOGIN -->
+      <form id="adminLoginForm" class="vendor-form" novalidate>
+        <div>
+          <label class="field-label">Admin Email ID *</label>
+          <input type="email" id="adminEmailInput" class="input" placeholder="Enter admin email ID..." required autocomplete="email" />
+          <small class="error-msg" id="err-admin-email"></small>
+        </div>
+
+        <div>
+          <label class="field-label">Admin Password *</label>
+          <input type="password" id="adminPasswordInput" class="input" placeholder="Enter admin password..." required autocomplete="current-password" />
+          <small class="error-msg" id="err-admin-password"></small>
+        </div>
+
+        <button type="submit" class="btn btn-admin btn-lg" id="adminLoginSubmitBtn" style="width:100%; justify-content:center; margin-top:6px;">
+          Login to Admin Panel 🔓
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- VISITOR SUBMIT PRODUCT MODAL -->
+  <div id="submitModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 id="modalTitle">Submit Your Web / Product</h2>
+          <p class="muted">Publish your SaaS, AI tool, or website live onto TechHub instantly.</p>
+        </div>
+        <button class="icon-btn" id="closeSubmitModalBtn" aria-label="Close">✕</button>
+      </div>
+
+      <form id="visitorProductForm" class="vendor-form" novalidate>
+        <div class="logo-builder-box">
+          <div class="logo-preview-wrap">
+            <div id="logoPreviewBox" class="app-icon" style="background:#2563EB; width:56px; height:56px; font-size:1.4rem;">W</div>
+            <img id="logoPreviewImg" class="logo-preview-img hidden" alt="Logo Preview" />
+          </div>
+          <div style="flex:1;">
+            <label class="field-label">Product Logo (Upload Image or Paste Logo URL)</label>
+            <div class="form-row">
+              <input type="file" id="pLogoFile" class="input" accept="image/png, image/jpeg, image/webp, image/svg+xml" />
+              <input type="url" id="pLogoUrl" class="input" placeholder="Or paste logo image URL (https://...)" />
+            </div>
+            <small class="error-msg" id="err-logo"></small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label class="field-label">Product / Website Name *</label>
+            <input type="text" id="pName" class="input" placeholder="e.g., ChatGPT, MyWebApp" maxlength="40" required />
+            <small class="error-msg" id="err-name"></small>
+          </div>
+          <div>
+            <label class="field-label">Official Website Link (URL) *</label>
+            <input type="url" id="pWebsite" class="input" placeholder="https://yourwebsite.com" required />
+            <small class="error-msg" id="err-website"></small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label class="field-label">Work Category *</label>
+            <select id="pCategory" class="input" required>
+              <option value="">-- Select Category --</option>
+              <option value="AI Tools">AI Tools</option>
+              <option value="Productivity">Productivity</option>
+              <option value="Design">Design</option>
+              <option value="Developer Tools">Developer Tools</option>
+              <option value="SaaS">SaaS</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Mobile Apps">Mobile Apps</option>
+            </select>
+            <small class="error-msg" id="err-category"></small>
+          </div>
+          <div>
+            <label class="field-label">Pricing Model *</label>
+            <select id="pPricing" class="input" required>
+              <option value="Free">Free</option>
+              <option value="Freemium">Freemium</option>
+              <option value="Paid">Paid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label class="field-label">Price Details *</label>
+            <input type="text" id="pPriceLabel" class="input" placeholder="e.g., Free, Free / $20 mo, $9/mo" required />
+            <small class="error-msg" id="err-priceLabel"></small>
+          </div>
+          <div>
+            <label class="field-label">Target Audience / Best For *</label>
+            <input type="text" id="pBestFor" class="input" placeholder="e.g., Developers, Students, Startups" required />
+            <small class="error-msg" id="err-bestFor"></small>
+          </div>
+        </div>
+
+        <div>
+          <label class="field-label">Short Tagline (15–110 chars) *</label>
+          <input type="text" id="pTagline" class="input" placeholder="e.g., AI assistant for writing, coding, and instant answers." maxlength="110" required />
+          <small class="error-msg" id="err-tagline"></small>
+        </div>
+
+        <div>
+          <label class="field-label">Detailed Work Description (min 30 chars) *</label>
+          <textarea id="pDescription" class="input" rows="3" placeholder="Explain what your tool/website does and its main features..." required></textarea>
+          <small class="error-msg" id="err-description"></small>
+        </div>
+
+        <div>
+          <label class="field-label">Key Features (comma-separated) *</label>
+          <input type="text" id="pFeatures" class="input" placeholder="e.g., Fast AI chat, Code generation, Free tier available" required />
+          <small class="error-msg" id="err-features"></small>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:6px;">
+          <button type="button" class="btn btn-outline" id="cancelSubmitModalBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Publish Live Now 🚀</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div class="brand">
+          <div class="brand-logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 19.5H22L12 2Z" fill="#60A5FA"/>
+            </svg>
+          </div>
+          <span class="brand-name" style="color:#fff;">TechHub</span>
+        </div>
+        <p class="footer-desc">Transparent SaaS & AI tools directory — zero fake metrics, direct links, and credential-protected Admin oversight.</p>
+      </div>
+      <div>
+        <h4>Navigation</h4>
+        <a href="#directory" data-route="directory">All Products</a>
+        <a href="#compare" data-route="compare">Compare Tools</a>
+        <a href="#adviser" data-route="adviser">AI Product Finder</a>
+      </div>
+      <div>
+        <h4>Access</h4>
+        <a href="#" id="footerSubmitLink">Submit Your Tool</a>
+        <a href="#dashboard" data-route="dashboard">Saved Tools</a>
+        <a href="#" id="footerAdminLink">Admin Portal</a>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <span>© 2026 TechHub SaaS Adviser Platform.</span>
+    </div>
+  </footer>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
