@@ -328,12 +328,32 @@ function refreshAllViews() {
 
 function updateGlobalCounters() {
   const realCats = getRealCategoryCounts();
+  const visitorCount = PRODUCTS.filter(p => p.isUserSubmitted).length;
+
   document.getElementById("navTotalCount").textContent = PRODUCTS.length;
   document.getElementById("navFavCount").textContent = favoriteIds.length;
   document.getElementById("compareCountBadge").textContent = compareIds.length;
-  document.getElementById("heroLiveToolCount").textContent = PRODUCTS.length;
-  document.getElementById("heroLiveCatCount").textContent = realCats.length;
   document.getElementById("homeAllCount").textContent = PRODUCTS.length;
+
+  const ovTools = document.getElementById("overviewTotalTools");
+  const ovCats = document.getElementById("overviewTotalCats");
+  const ovVis = document.getElementById("overviewVisitorCount");
+  const ovGrid = document.getElementById("overviewCategoryBreakdownGrid");
+
+  if (ovTools) ovTools.textContent = PRODUCTS.length;
+  if (ovCats) ovCats.textContent = realCats.length;
+  if (ovVis) ovVis.textContent = visitorCount;
+  if (ovGrid) {
+    ovGrid.innerHTML = realCats.map(cat => `
+      <div class="pop-cat-card" onclick="filterDirectoryByCategory('${escapeHTML(cat.name)}')">
+        <div class="icon">${cat.icon}</div>
+        <div>
+          <strong>${escapeHTML(cat.name)}</strong>
+          <small>${cat.count} listed ${cat.count === 1 ? "product" : "products"}</small>
+        </div>
+      </div>
+    `).join("");
+  }
 }
 
 function updateAdminHeaderUI() {

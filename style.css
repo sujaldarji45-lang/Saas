@@ -1580,3 +1580,120 @@ a {
     padding: 20px;
   }
 }
+
+
+
+/* =========================================================================
+   G2-INSPIRED HERO ILLUSTRATION & CLEAN SECTION-ANCHORED ARCHITECTURAL ACCENTS
+   ========================================================================= */
+.g2-hero-artwork {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  filter: drop-shadow(0 22px 38px rgba(2, 6, 23, 0.35));
+}
+
+.g2-hero-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* G2-inspired crisp, non-sticky geometric section accents (scrolls naturally, zero viewport clutter) */
+.section {
+  position: relative;
+  background-color: #FFFFFF;
+  background-image:
+    radial-gradient(circle at 96% 14%, rgba(249, 115, 22, 0.055) 0%, rgba(249, 115, 22, 0.055) 110px, transparent 111px),
+    radial-gradient(circle at 4% 88%, rgba(37, 99, 235, 0.05) 0%, rgba(37, 99, 235, 0.05) 130px, transparent 131px);
+}
+
+.section-alt {
+  position: relative;
+  background-color: #F8FAFC;
+  border-top: 1px solid #E2E8F0;
+  border-bottom: 1px solid #E2E8F0;
+  background-image:
+    linear-gradient(135deg, rgba(249, 115, 22, 0.035) 0%, transparent 38%),
+    linear-gradient(315deg, rgba(14, 165, 233, 0.045) 0%, transparent 42%);
+}
+
+.category-strip-section {
+  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+/* Subtle G2-style coral/orange & blue top accent on cards on hover */
+.product-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #F97316, #2563EB, #06B6D4);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.product-card:hover::before {
+  opacity: 1;
+}
+
+.pop-cat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.pop-cat-card::after {
+  content: "";
+  position: absolute;
+  right: -18px;
+  bottom: -18px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.06);
+  pointer-events: none;
+}
+
+
+
+/* =========================================================================
+   SEAMLESS HERO BANNER ARTWORK BLENDING (MATCHES #0A192F -> #1E3A8A)
+   ========================================================================= */
+.hero-art-blend {
+  position: relative;
+  width: 100%;
+  max-width: 530px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 28px;
+  /* Soft radial vignette mask so image edges dissolve seamlessly into the blue hero banner */
+  -webkit-mask-image: radial-gradient(ellipse 86% 84% at 50% 50%, #000 66%, transparent 100%);
+  mask-image: radial-gradient(ellipse 86% 84% at 50% 50%, #000 66%, transparent 100%);
+  filter: drop-shadow(0 18px 36px rgba(6, 182, 212, 0.22));
+  animation: heroFloat 5.5s ease-in-out infinite;
+}
+
+.hero-blended-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 24px;
+  object-fit: cover;
+  mix-blend-mode: lighten;
+}
+
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-7px); }
+}
