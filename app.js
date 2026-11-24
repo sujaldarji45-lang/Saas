@@ -1029,18 +1029,6 @@ function renderProductDetail(productId) {
             <p class="muted" style="font-size:0.82rem; margin-top:4px;">Best suited for ${escapeHTML(p.bestFor)}.</p>
           </div>
 
-          <!-- OFFICIAL WEBSITE -->
-          <div class="showcase-panel side-website-card">
-            <div class="showcase-panel-head">
-              <h4>🌐 Official Website</h4>
-            </div>
-            <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" class="official-url-link">
-              ${escapeHTML(p.website)} ↗
-            </a>
-            <p class="muted" style="font-size:0.8rem; margin:6px 0 12px;">Visit the official site for full documentation & onboarding.</p>
-            <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="width:100%;">Visit Site →</a>
-          </div>
-
           <!-- QUICK INFO -->
           <div class="showcase-panel side-quickinfo-card">
             <div class="showcase-panel-head">
