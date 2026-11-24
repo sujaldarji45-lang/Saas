@@ -263,11 +263,13 @@ const DEFAULT_PRODUCTS = [
 const STORAGE_KEY_PRODUCTS = "techhub_real_products_v3";
 const STORAGE_KEY_FAVS = "techhub_real_favs_v3";
 const STORAGE_KEY_ADMIN_SESSION = "techhub_admin_session_v3";
+const STORAGE_KEY_ACTIVE_ROUTE = "techhub_active_route_v1";
+const STORAGE_KEY_ACTIVE_DETAIL = "techhub_active_detail_v1";
 
 let PRODUCTS = loadProducts();
 let favoriteIds = loadFavorites();
 let compareIds = PRODUCTS.slice(0, 3).map(p => p.id);
-let selectedDetailId = PRODUCTS[0]?.id || "chatgpt";
+let selectedDetailId = loadPersistedDetailId();
 let selectedDetailTab = "overview";
 let uploadedLogoDataUrl = "";
 let uploadedGalleryImages = [];
@@ -363,6 +365,44 @@ function escapeHTML(str) {
     .replace(/"/g, "&quot;");
 }
 
+function loadPersistedDetailId() {
+  try {
+    const hash = window.location.hash || "";
+    const m = hash.match(/^#tool\/(.+)$/);
+    if (m && m[1]) {
+      const found = PRODUCTS.find(p => p.id === decodeURIComponent(m[1]));
+      if (found) return found.id;
+    }
+    const saved = localStorage.getItem(STORAGE_KEY_ACTIVE_DETAIL);
+    if (saved && PRODUCTS.some(p => p.id === saved)) return saved;
+  } catch (e) {}
+  return PRODUCTS[0]?.id || "chatgpt";
+}
+
+function getInitialRoute() {
+  const validRoutes = ["home", "overview", "directory", "detail", "compare", "adviser", "dashboard", "admin"];
+  try {
+    const hash = (window.location.hash || "").replace(/^#/, "");
+    if (hash.startsWith("tool/")) {
+      const toolId = decodeURIComponent(hash.slice(5));
+      if (PRODUCTS.some(p => p.id === toolId)) {
+        selectedDetailId = toolId;
+        return "detail";
+      }
+    }
+    if (validRoutes.includes(hash)) {
+      if (hash === "admin" && !getAdminSession()) return "home";
+      return hash;
+    }
+    const savedRoute = localStorage.getItem(STORAGE_KEY_ACTIVE_ROUTE);
+    if (savedRoute && validRoutes.includes(savedRoute)) {
+      if (savedRoute === "admin" && !getAdminSession()) return "home";
+      return savedRoute;
+    }
+  } catch (e) {}
+  return "home";
+}
+
 // INITIALIZE APP
 document.addEventListener("DOMContentLoaded", () => {
   updateAdminHeaderUI();
@@ -371,6 +411,27 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSearchAndEvents();
   setupSubmissionModal();
   setupAdminAuthModal();
+
+  const initialRoute = getInitialRoute();
+  if (initialRoute === "detail") {
+    renderProductDetail(selectedDetailId);
+  } else if (initialRoute === "compare") {
+    renderCompareMatrix();
+  } else if (initialRoute === "dashboard") {
+    renderSavedToolsView();
+  } else if (initialRoute === "admin" && getAdminSession()) {
+    renderAdminPanel();
+  }
+  switchView(initialRoute, { scroll: false, syncHash: true });
+
+  window.addEventListener("hashchange", () => {
+    const r = getInitialRoute();
+    if (r === "detail") renderProductDetail(selectedDetailId);
+    if (r === "compare") renderCompareMatrix();
+    if (r === "dashboard") renderSavedToolsView();
+    if (r === "admin" && getAdminSession()) renderAdminPanel();
+    switchView(r, { scroll: false, syncHash: false });
+  });
 });
 
 function refreshAllViews() {
@@ -422,7 +483,8 @@ function updateAdminHeaderUI() {
 }
 
 // NAVIGATION ROUTER
-function switchView(routeName) {
+function switchView(routeName, opts = {}) {
+  const { scroll = true, syncHash = true } = opts;
   // Guard Admin View
   if (routeName === "admin" && !getAdminSession()) {
     openAdminAuthModal();
@@ -437,8 +499,20 @@ function switchView(routeName) {
     link.classList.toggle("active", link.dataset.route === routeName);
   });
 
+  try {
+    localStorage.setItem(STORAGE_KEY_ACTIVE_ROUTE, routeName);
+    if (syncHash) {
+      const nextHash = routeName === "detail"
+        ? `#tool/${encodeURIComponent(selectedDetailId)}`
+        : `#${routeName}`;
+      if (window.location.hash !== nextHash) {
+        history.replaceState(null, "", nextHash);
+      }
+    }
+  } catch (e) {}
+
   document.getElementById("navLinks").classList.remove("open");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function setupNavigation() {
@@ -867,6 +941,9 @@ function renderDirectory() {
 function openProductDetail(productId) {
   selectedDetailId = productId;
   selectedDetailTab = "overview";
+  try {
+    localStorage.setItem(STORAGE_KEY_ACTIVE_DETAIL, productId);
+  } catch (e) {}
   renderProductDetail(productId);
   switchView("detail");
 }
