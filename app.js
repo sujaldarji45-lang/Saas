@@ -9,25 +9,62 @@ const ADMIN_CREDENTIALS = {
   password: "Admin@123"
 };
 
-const CATEGORY_ICONS = {
-  "AI Tools": "🤖",
-  "Productivity": "⚡",
-  "Design": "🎨",
-  "Developer Tools": "🛠️",
-  "SaaS": "☁️",
-  "Marketing": "📣",
-  "Mobile Apps": "📱"
+const CATEGORY_META = {
+  "AI Tools": {
+    bg: "linear-gradient(135deg, #EEF2FF, #E0E7FF)",
+    color: "#4F46E5",
+    svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/><circle cx="12" cy="12" r="3"/></svg>`
+  },
+  "Productivity": {
+    bg: "linear-gradient(135deg, #ECFDF5, #D1FAE5)",
+    color: "#059669",
+    svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
+  },
+  "Design": {
+    bg: "linear-gradient(135deg, #FFF1F2, #FFE4E6)",
+    color: "#E11D48",
+    svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>`
+  },
+  "Developer Tools": {
+    bg: "linear-gradient(135deg, #F0F9FF, #E0F2FE)",
+    color: "#0284C7",
+    svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`
+  },
+  "SaaS": {
+    bg: "linear-gradient(135deg, #F5F3FF, #EDE9FE)",
+    color: "#7C3AED",
+    svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`
+  },
+  "Marketing": {
+    bg: "linear-gradient(135deg, #FFF7ED, #FFEDD5)",
+    color: "#EA580C",
+    svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>`
+  },
+  "Mobile Apps": {
+    bg: "linear-gradient(135deg, #ECFEFF, #CFFAFE)",
+    color: "#0891B2",
+    svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`
+  }
 };
+
+function getCatMeta(name) {
+  return CATEGORY_META[name] || {
+    bg: "linear-gradient(135deg, #EFF6FF, #DBEAFE)",
+    color: "#2563EB",
+    svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`
+  };
+}
 
 const DEFAULT_PRODUCTS = [
   {
     id: "chatgpt",
     name: "ChatGPT",
+    developer: "OpenAI",
     letter: "G",
     logoUrl: "",
     color: "#10A37F",
     category: "AI Tools",
-    pricing: "Freemium",
+    pricing: "Free & Premium",
     priceLabel: "Free / $20 mo",
     rating: 4.8,
     isUserSubmitted: false,
@@ -44,11 +81,12 @@ const DEFAULT_PRODUCTS = [
   {
     id: "notion",
     name: "Notion",
+    developer: "Notion Labs",
     letter: "N",
     logoUrl: "",
     color: "#111827",
     category: "Productivity",
-    pricing: "Freemium",
+    pricing: "Free & Premium",
     priceLabel: "Free / $10 mo",
     rating: 4.7,
     isUserSubmitted: false,
@@ -63,11 +101,12 @@ const DEFAULT_PRODUCTS = [
   {
     id: "figma",
     name: "Figma",
+    developer: "Figma Inc.",
     letter: "F",
     logoUrl: "",
     color: "#F24E1E",
     category: "Design",
-    pricing: "Freemium",
+    pricing: "Free & Premium",
     priceLabel: "Free / $15 mo",
     rating: 4.8,
     isUserSubmitted: false,
@@ -82,11 +121,12 @@ const DEFAULT_PRODUCTS = [
   {
     id: "canva",
     name: "Canva",
+    developer: "Canva Pty Ltd",
     letter: "C",
     logoUrl: "",
     color: "#7C3AED",
     category: "Design",
-    pricing: "Freemium",
+    pricing: "Free & Premium",
     priceLabel: "Free / $12.99 mo",
     rating: 4.6,
     isUserSubmitted: false,
@@ -101,11 +141,12 @@ const DEFAULT_PRODUCTS = [
   {
     id: "grammarly",
     name: "Grammarly",
+    developer: "Grammarly Inc.",
     letter: "G",
     logoUrl: "",
     color: "#059669",
     category: "Productivity",
-    pricing: "Freemium",
+    pricing: "Free & Premium",
     priceLabel: "Free / $12 mo",
     rating: 4.7,
     isUserSubmitted: false,
@@ -120,11 +161,12 @@ const DEFAULT_PRODUCTS = [
   {
     id: "claude",
     name: "Claude",
+    developer: "Anthropic",
     letter: "C",
     logoUrl: "",
     color: "#D97706",
     category: "AI Tools",
-    pricing: "Freemium",
+    pricing: "Free & Premium",
     priceLabel: "Free / $20 mo",
     rating: 4.9,
     isUserSubmitted: false,
@@ -139,11 +181,12 @@ const DEFAULT_PRODUCTS = [
   {
     id: "gemini",
     name: "Gemini",
+    developer: "Google",
     letter: "✦",
     logoUrl: "",
     color: "#2563EB",
     category: "AI Tools",
-    pricing: "Freemium",
+    pricing: "Free & Premium",
     priceLabel: "Free / $19.99 mo",
     rating: 4.8,
     isUserSubmitted: false,
@@ -158,11 +201,12 @@ const DEFAULT_PRODUCTS = [
   {
     id: "cursor",
     name: "Cursor",
+    developer: "Anysphere",
     letter: "⌘",
     logoUrl: "",
     color: "#0F172A",
     category: "Developer Tools",
-    pricing: "Freemium",
+    pricing: "Free & Premium",
     priceLabel: "Free / $20 mo",
     rating: 4.9,
     isUserSubmitted: false,
@@ -177,11 +221,12 @@ const DEFAULT_PRODUCTS = [
   {
     id: "perplexity",
     name: "Perplexity",
+    developer: "Perplexity AI",
     letter: "P",
     logoUrl: "",
     color: "#0284C7",
     category: "AI Tools",
-    pricing: "Freemium",
+    pricing: "Free & Premium",
     priceLabel: "Free / $20 mo",
     rating: 4.8,
     isUserSubmitted: false,
@@ -196,6 +241,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: "midjourney",
     name: "Midjourney",
+    developer: "Midjourney Inc.",
     letter: "M",
     logoUrl: "",
     color: "#4F46E5",
@@ -232,7 +278,15 @@ function loadProducts() {
     const raw = localStorage.getItem(STORAGE_KEY_PRODUCTS);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(item => {
+          let pr = item.pricing;
+          if ((pr === "Premium" || pr === "Freemium") && String(item.priceLabel || "").toLowerCase().includes("free")) {
+            pr = "Free & Premium";
+          }
+          return { ...item, pricing: pr };
+        });
+      }
     }
   } catch (e) {}
   return [...DEFAULT_PRODUCTS];
@@ -285,7 +339,7 @@ function getRealCategoryCounts() {
   return Object.entries(counts).map(([name, count]) => ({
     name,
     count,
-    icon: CATEGORY_ICONS[name] || "📦"
+    meta: getCatMeta(name)
   }));
 }
 
@@ -346,7 +400,7 @@ function updateGlobalCounters() {
   if (ovGrid) {
     ovGrid.innerHTML = realCats.map(cat => `
       <div class="pop-cat-card" onclick="filterDirectoryByCategory('${escapeHTML(cat.name)}')">
-        <div class="icon">${cat.icon}</div>
+        <div class="cat-svg-box" style="background:${cat.meta.bg}; color:${cat.meta.color};">${cat.meta.svg}</div>
         <div>
           <strong>${escapeHTML(cat.name)}</strong>
           <small>${cat.count} listed ${cat.count === 1 ? "product" : "products"}</small>
@@ -358,14 +412,9 @@ function updateGlobalCounters() {
 
 function updateAdminHeaderUI() {
   const session = getAdminSession();
-  const dot = document.getElementById("adminStatusDot");
-  const label = document.getElementById("adminBtnLabel");
-  if (session) {
-    dot.classList.add("online");
-    label.textContent = "🛡️ Admin Panel";
-  } else {
-    dot.classList.remove("online");
-    label.textContent = "🛡️ Admin Login";
+  const footerLink = document.getElementById("footerAdminLink");
+  if (footerLink) {
+    footerLink.textContent = session ? "Admin Panel (Active)" : "Admin Portal";
   }
 }
 
@@ -663,13 +712,14 @@ function renderHomeSections() {
 
   const strip = document.getElementById("quickCategoryStrip");
   strip.innerHTML = realCats.map(cat => `
-    <div class="strip-item" onclick="filterDirectoryByCategory('${escapeHTML(cat.name)}')">
-      <span class="strip-icon">${cat.icon}</span>
-      <div>
-        <strong>${escapeHTML(cat.name)}</strong>
-        <small> (${cat.count} ${cat.count === 1 ? "tool" : "tools"})</small>
-      </div>
-    </div>
+    <button type="button" class="cat-dock-card" onclick="filterDirectoryByCategory('${escapeHTML(cat.name)}')">
+      <span class="cat-dock-icon" style="background:${cat.meta.bg}; color:${cat.meta.color};">${cat.meta.svg}</span>
+      <span class="cat-dock-info">
+        <strong class="cat-dock-title">${escapeHTML(cat.name)}</strong>
+        <span class="cat-dock-sub">${cat.count} ${cat.count === 1 ? "Tool" : "Tools"}</span>
+      </span>
+      <span class="cat-dock-arrow">›</span>
+    </button>
   `).join("");
 
   const trendingGrid = document.getElementById("trendingProductsGrid");
@@ -686,7 +736,7 @@ function renderHomeSections() {
   const popCatGrid = document.getElementById("popularCategoriesGrid");
   popCatGrid.innerHTML = realCats.map(cat => `
     <div class="pop-cat-card" onclick="filterDirectoryByCategory('${escapeHTML(cat.name)}')">
-      <div class="icon">${cat.icon}</div>
+      <div class="cat-svg-box" style="background:${cat.meta.bg}; color:${cat.meta.color};">${cat.meta.svg}</div>
       <div>
         <strong>${escapeHTML(cat.name)}</strong>
         <small>${cat.count} listed ${cat.count === 1 ? "product" : "products"}</small>
@@ -793,7 +843,11 @@ function renderDirectory() {
       p.category.toLowerCase().includes(query) ||
       p.website.toLowerCase().includes(query);
     const matchesCat = selectedCats.length === 0 || selectedCats.includes(p.category);
-    const matchesPricing = selectedPricing.length === 0 || selectedPricing.includes(p.pricing);
+    const matchesPricing = selectedPricing.length === 0 || selectedPricing.some(sel => {
+      if (sel === "Free") return p.pricing === "Free" || p.pricing === "Free & Premium";
+      if (sel === "Premium") return p.pricing === "Premium" || p.pricing === "Free & Premium";
+      return p.pricing === sel;
+    });
     return matchesQuery && matchesCat && matchesPricing;
   });
 
@@ -814,50 +868,202 @@ function openProductDetail(productId) {
   switchView("detail");
 }
 
+let activeReviewSlideIdx = 0;
+
+function getComputedRatingInfo(p) {
+  const reviews = p.reviews || [];
+  if (reviews.length > 0) {
+    const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+    const avg = (sum / reviews.length).toFixed(1);
+    return {
+      scoreText: `${avg}/5`,
+      numericScore: avg,
+      countLabel: `Based on ${reviews.length} user ${reviews.length === 1 ? "review" : "reviews"}`,
+      hasUserReviews: true
+    };
+  }
+  return {
+    scoreText: `${p.rating}/5`,
+    numericScore: p.rating,
+    countLabel: "No user reviews yet — be the first!",
+    hasUserReviews: false
+  };
+}
+
 function renderProductDetail(productId) {
   const p = PRODUCTS.find(item => item.id === productId) || PRODUCTS[0];
   const container = document.getElementById("productDetailContainer");
   const isFav = favoriteIds.includes(p.id);
   const inCompare = compareIds.includes(p.id);
   const reviews = p.reviews || [];
+  const ratingInfo = getComputedRatingInfo(p);
+  const alts = PRODUCTS.filter(item => item.category === p.category && item.id !== p.id);
+  const devName = p.developer || (p.isUserSubmitted ? "Community Publisher" : "Verified Vendor");
+  const listedDate = p.addedAt || "Listed in Catalog";
+
+  if (activeReviewSlideIdx >= reviews.length) activeReviewSlideIdx = 0;
 
   let tabContent = "";
   if (selectedDetailTab === "overview") {
+    const currentReview = reviews[activeReviewSlideIdx];
+
+    const userSayHTML = reviews.length > 0
+      ? `
+        <div class="usersay-body">
+          <div class="usersay-score-col">
+            <div class="usersay-big-num">${ratingInfo.numericScore}</div>
+            <div class="usersay-stars">${"★".repeat(Math.round(Number(ratingInfo.numericScore)))}${"☆".repeat(5 - Math.round(Number(ratingInfo.numericScore)))}</div>
+            <div class="muted" style="font-size:0.78rem; margin-top:4px;">${reviews.length} user ${reviews.length === 1 ? "review" : "reviews"}</div>
+          </div>
+          <div class="usersay-quote-card">
+            <p class="usersay-quote-text">“${escapeHTML(currentReview.comment)}”</p>
+            <div class="usersay-author-row">
+              <div class="usersay-avatar">${escapeHTML(currentReview.user[0].toUpperCase())}</div>
+              <div>
+                <strong style="font-size:0.86rem; display:block;">${escapeHTML(currentReview.user)}</strong>
+                <span style="font-size:0.74rem; color:#F59E0B; font-weight:700;">${"★".repeat(currentReview.rating)} Verified Review</span>
+              </div>
+              ${reviews.length > 1 ? `
+                <div style="margin-left:auto; display:flex; gap:6px;">
+                  <button type="button" class="icon-btn" style="width:28px;height:28px;" onclick="cycleReviewSlide(-1)" title="Previous Review">‹</button>
+                  <button type="button" class="icon-btn" style="width:28px;height:28px;" onclick="cycleReviewSlide(1)" title="Next Review">›</button>
+                </div>
+              ` : ""}
+            </div>
+          </div>
+        </div>
+      `
+      : `
+        <div class="usersay-empty">
+          <p class="muted" style="font-size:0.88rem;">Abhi tak <strong>${escapeHTML(p.name)}</strong> par kisi user ne review nahi diya hai.</p>
+          <button type="button" class="btn btn-outline btn-sm mt-12" onclick="setDetailTab('reviews')">✍️ Write First Review</button>
+        </div>
+      `;
+
+    const similarCardsHTML = alts.length > 0
+      ? `
+        <div class="similar-row-strip">
+          ${alts.slice(0, 4).map(a => `
+            <div class="similar-row-item" onclick="openProductDetail('${a.id}')" title="${escapeHTML(a.name)}">
+              ${renderLogoHTML(a, 34, "0.92rem")}
+              <div class="similar-row-text">
+                <strong>${escapeHTML(a.name)}</strong>
+                <small>${escapeHTML(a.pricing)}</small>
+              </div>
+              <span class="similar-row-go">›</span>
+            </div>
+          `).join("")}
+        </div>
+      `
+      : `<p class="muted" style="font-size:0.84rem; padding:8px 0;">Is category mein abhi aur koi alternative tool list nahi hai.</p>`;
+
     tabContent = `
-      <div class="detail-overview-grid">
-        <div>
-          <div class="about-accent-card">
-            <h3 style="color:#0F172A; font-size:1.15rem;">✨ About ${escapeHTML(p.name)}</h3>
-            <p style="margin-top:10px; color:#334155; line-height:1.68; font-size:0.95rem;">${escapeHTML(p.description)}</p>
+      <div class="showcase-main-grid">
+        <!-- LEFT MAIN COLUMN -->
+        <div class="showcase-left-col">
+          <!-- ABOUT CARD -->
+          <div class="showcase-panel">
+            <div class="showcase-panel-head">
+              <h3>✨ About ${escapeHTML(p.name)}</h3>
+              <span class="tag-pill">${escapeHTML(p.bestFor)}</span>
+            </div>
+            <p class="showcase-desc">${escapeHTML(p.description)}</p>
+            <div class="about-checklist">
+              ${p.features.slice(0, 3).map(f => `
+                <div class="about-check-row">
+                  <span class="feature-check-badge">✓</span>
+                  <span>${escapeHTML(f)}</span>
+                </div>
+              `).join("")}
+            </div>
+            <div style="margin-top:16px;">
+              <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" class="btn btn-primary">Start Using ${escapeHTML(p.name)} →</a>
+            </div>
           </div>
 
-          <h3 class="mt-24" style="font-size:1.1rem; color:#0F172A;">🚀 Key Capabilities & Features</h3>
-          <div class="features-modern-grid">
-            ${p.features.map(f => `
-              <div class="feature-chip-card">
-                <span class="feature-check-badge">✓</span>
-                <span>${escapeHTML(f)}</span>
+          <!-- KEY FEATURES CARD -->
+          <div class="showcase-panel">
+            <div class="showcase-panel-head">
+              <h3>⚡ Key Features</h3>
+              <span class="muted" style="font-size:0.8rem;">${p.features.length} Core Capabilities</span>
+            </div>
+            <div class="features-modern-grid">
+              ${p.features.map(f => `
+                <div class="feature-chip-card">
+                  <span class="feature-check-badge">✓</span>
+                  <span>${escapeHTML(f)}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <!-- BOTTOM 2-COLUMN: WHAT USERS SAY + SIMILAR TOOLS / ALTERNATIVES -->
+          <div class="showcase-bottom-split">
+            <div class="showcase-panel">
+              <div class="showcase-panel-head">
+                <h3>⭐ What Users Say</h3>
+                <button type="button" class="text-btn" onclick="setDetailTab('reviews')">View All (${reviews.length}) →</button>
               </div>
-            `).join("")}
+              ${userSayHTML}
+            </div>
+
+            <div class="showcase-panel">
+              <div class="showcase-panel-head">
+                <h3>🔄 Similar Tools / Alternatives</h3>
+                <button type="button" class="text-btn" onclick="setDetailTab('alternatives')">View All (${alts.length}) →</button>
+              </div>
+              ${similarCardsHTML}
+            </div>
           </div>
         </div>
 
-        <aside class="detail-side-panel">
-          <div class="info-highlight-box info-box-indigo">
-            <div class="info-box-label" style="color:#3730A3;">🎯 Best Recommended For</div>
-            <strong style="color:#1E1B4B; font-size:0.95rem;">${escapeHTML(p.bestFor)}</strong>
+        <!-- RIGHT SIDEBAR COLUMN -->
+        <aside class="showcase-right-col">
+          <!-- PRICING & PLAN -->
+          <div class="showcase-panel side-pricing-card">
+            <div class="showcase-panel-head">
+              <h4>💎 Pricing & Plan</h4>
+              <span class="price-badge">${escapeHTML(p.pricing)}</span>
+            </div>
+            <div class="side-price-big">${escapeHTML(p.priceLabel)}</div>
+            <p class="muted" style="font-size:0.82rem; margin-top:4px;">Best suited for ${escapeHTML(p.bestFor)}.</p>
           </div>
 
-          <div class="info-highlight-box info-box-emerald">
-            <div class="info-box-label" style="color:#065F46;">💳 Pricing & Plan</div>
-            <strong style="color:#064E3B; font-size:0.95rem;">${escapeHTML(p.pricing)} — ${escapeHTML(p.priceLabel)}</strong>
-          </div>
-
-          <div class="info-highlight-box info-box-cyan">
-            <div class="info-box-label" style="color:#155E75;">🌐 Official Website</div>
-            <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" style="color:#0369A1; font-weight:700; font-size:0.9rem; word-break:break-all;">
+          <!-- OFFICIAL WEBSITE -->
+          <div class="showcase-panel side-website-card">
+            <div class="showcase-panel-head">
+              <h4>🌐 Official Website</h4>
+            </div>
+            <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" class="official-url-link">
               ${escapeHTML(p.website)} ↗
             </a>
+            <p class="muted" style="font-size:0.8rem; margin:6px 0 12px;">Visit the official site for full documentation & onboarding.</p>
+            <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="width:100%;">Visit Site →</a>
+          </div>
+
+          <!-- QUICK INFO -->
+          <div class="showcase-panel side-quickinfo-card">
+            <div class="showcase-panel-head">
+              <h4>📌 Quick Info</h4>
+            </div>
+            <div class="quick-info-list">
+              <div class="qi-row">
+                <span class="qi-label">👤 Developer</span>
+                <strong class="qi-val">${escapeHTML(devName)}</strong>
+              </div>
+              <div class="qi-row">
+                <span class="qi-label">📂 Category</span>
+                <strong class="qi-val">${escapeHTML(p.category)}</strong>
+              </div>
+              <div class="qi-row">
+                <span class="qi-label">🔗 Website</span>
+                <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" class="text-btn qi-val" style="text-align:right; word-break:break-all;">${escapeHTML(p.website.replace(/^https?:\/\//, ""))}</a>
+              </div>
+              <div class="qi-row">
+                <span class="qi-label">📅 Listed</span>
+                <strong class="qi-val">${escapeHTML(listedDate)}</strong>
+              </div>
+            </div>
           </div>
         </aside>
       </div>
@@ -866,36 +1072,43 @@ function renderProductDetail(productId) {
     tabContent = `
       <div class="detail-overview-grid">
         <div>
-          <h3>⭐ Verified User Reviews (${reviews.length})</h3>
+          <h3>⭐ Real User Reviews (${reviews.length})</h3>
+          <p class="muted" style="font-size:0.84rem;">Rating dynamically updates from actual user submissions.</p>
           <div style="display:flex; flex-direction:column; gap:12px; margin-top:14px;">
             ${reviews.length ? reviews.map(r => `
               <div class="review-card-accent">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   <strong>${escapeHTML(r.user)}</strong>
-                  <span style="color:#F59E0B; font-weight:700;">${"★".repeat(r.rating)}</span>
+                  <span style="color:#F59E0B; font-weight:700;">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</span>
                 </div>
                 <p class="muted" style="margin-top:6px;">${escapeHTML(r.comment)}</p>
               </div>
-            `).join("") : `<div class="card-box"><p class="muted">No reviews written yet for ${escapeHTML(p.name)}. Share your feedback on the right!</p></div>`}
+            `).join("") : `<div class="card-box"><p class="muted">No reviews written yet for ${escapeHTML(p.name)}. Add the first genuine review using the form!</p></div>`}
           </div>
         </div>
 
         <div class="card-box" style="background:#F8FAFC;">
           <h4>✍️ Write a Review</h4>
-          <p class="muted" style="font-size:0.8rem; margin-bottom:10px;">Help others decide with your real experience.</p>
+          <p class="muted" style="font-size:0.8rem; margin-bottom:10px;">Your rating and feedback will immediately update ${escapeHTML(p.name)}'s live score.</p>
           <form onsubmit="submitReview(event, '${p.id}')" class="vendor-form">
-            <input type="text" id="revUser" class="input" placeholder="Your Name" required />
-            <textarea id="revComment" class="input" rows="3" placeholder="What do you like about ${escapeHTML(p.name)}?" required></textarea>
+            <input type="text" id="revUser" class="input" placeholder="Your Name *" required />
+            <select id="revRating" class="input">
+              <option value="5">★★★★★ (5/5 — Excellent)</option>
+              <option value="4">★★★★☆ (4/5 — Very Good)</option>
+              <option value="3">★★★☆☆ (3/5 — Average)</option>
+              <option value="2">★★☆☆☆ (2/5 — Fair)</option>
+              <option value="1">★☆☆☆☆ (1/5 — Poor)</option>
+            </select>
+            <textarea id="revComment" class="input" rows="3" placeholder="Share your real experience with ${escapeHTML(p.name)}... *" required></textarea>
             <button type="submit" class="btn btn-primary" style="width:100%;">Post Review</button>
           </form>
         </div>
       </div>
     `;
   } else {
-    const alts = PRODUCTS.filter(item => item.category === p.category && item.id !== p.id);
     tabContent = `
       <div>
-        <h3>🔄 Similar Tools in ${escapeHTML(p.category)} (${alts.length})</h3>
+        <h3>🔄 Similar Tools & Alternatives in ${escapeHTML(p.category)} (${alts.length})</h3>
         <div class="products-grid mt-12">
           ${alts.length ? alts.map(a => createProductCardHTML(a)).join("") : `<p class="muted">No other tools listed in this category yet.</p>`}
         </div>
@@ -910,14 +1123,16 @@ function renderProductDetail(productId) {
         <div class="detail-banner-top">
           <div class="detail-title-group">
             <div class="detail-logo-ring">
-              ${renderLogoHTML(p, 64, "1.6rem")}
+              ${renderLogoHTML(p, 68, "1.7rem")}
             </div>
             <div class="detail-banner-title">
-              <h1>${escapeHTML(p.name)}</h1>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <h1>${escapeHTML(p.name)}</h1>
+                <span class="badge-glass-cyan">${escapeHTML(p.category)}</span>
+              </div>
               <p class="detail-banner-tagline">${escapeHTML(p.tagline)}</p>
               <div class="detail-badges-row">
-                <span class="badge-glass-cyan">${escapeHTML(p.category)}</span>
-                <span class="badge-glass-amber">★ ${p.rating} Rating</span>
+                <span class="badge-glass-amber">★ ${ratingInfo.scoreText} (${reviews.length} ${reviews.length === 1 ? "Review" : "Reviews"})</span>
                 <span class="badge-glass-emerald">${escapeHTML(p.priceLabel)}</span>
               </div>
             </div>
@@ -933,15 +1148,23 @@ function renderProductDetail(productId) {
 
       <div class="detail-body-pad">
         <div class="detail-tabs-modern">
-          <button class="detail-tab-pill ${selectedDetailTab === 'overview' ? 'active' : ''}" onclick="setDetailTab('overview')">Overview</button>
-          <button class="detail-tab-pill ${selectedDetailTab === 'reviews' ? 'active' : ''}" onclick="setDetailTab('reviews')">Reviews (${reviews.length})</button>
-          <button class="detail-tab-pill ${selectedDetailTab === 'alternatives' ? 'active' : ''}" onclick="setDetailTab('alternatives')">Alternatives</button>
+          <button class="detail-tab-pill ${selectedDetailTab === 'overview' ? 'active' : ''}" onclick="setDetailTab('overview')">🏠 Overview</button>
+          <button class="detail-tab-pill ${selectedDetailTab === 'reviews' ? 'active' : ''}" onclick="setDetailTab('reviews')">⭐ Reviews (${reviews.length})</button>
+          <button class="detail-tab-pill ${selectedDetailTab === 'alternatives' ? 'active' : ''}" onclick="setDetailTab('alternatives')">🔄 Alternatives (${alts.length})</button>
         </div>
 
         ${tabContent}
       </div>
     </div>
   `;
+}
+
+function cycleReviewSlide(dir) {
+  const p = PRODUCTS.find(item => item.id === selectedDetailId) || PRODUCTS[0];
+  const len = (p.reviews || []).length;
+  if (len <= 1) return;
+  activeReviewSlideIdx = (activeReviewSlideIdx + dir + len) % len;
+  renderProductDetail(selectedDetailId);
 }
 
 function setDetailTab(tab) {
@@ -952,12 +1175,17 @@ function setDetailTab(tab) {
 function submitReview(e, productId) {
   e.preventDefault();
   const user = document.getElementById("revUser").value.trim();
+  const ratingVal = parseInt(document.getElementById("revRating")?.value || "5", 10);
   const comment = document.getElementById("revComment").value.trim();
   const p = PRODUCTS.find(item => item.id === productId);
   if (p && user.length >= 2 && comment.length >= 5) {
     if (!p.reviews) p.reviews = [];
-    p.reviews.unshift({ user, rating: 5, comment });
+    p.reviews.unshift({ user, rating: Math.min(5, Math.max(1, ratingVal)), comment });
+    const avg = (p.reviews.reduce((s, r) => s + r.rating, 0) / p.reviews.length).toFixed(1);
+    p.rating = parseFloat(avg);
+    activeReviewSlideIdx = 0;
     saveProducts();
+    refreshAllViews();
     showToast("Review published!");
     renderProductDetail(productId);
   } else {
@@ -1231,6 +1459,7 @@ function handleVisitorProductSubmit(e) {
   const category = document.getElementById("pCategory").value.trim();
   const pricing = document.getElementById("pPricing").value.trim();
   const priceLabel = document.getElementById("pPriceLabel").value.trim();
+  const developer = (document.getElementById("pDeveloper")?.value || "").trim() || "Community Creator";
   const bestFor = document.getElementById("pBestFor").value.trim();
   const tagline = document.getElementById("pTagline").value.trim();
   const description = document.getElementById("pDescription").value.trim();
@@ -1300,6 +1529,7 @@ function handleVisitorProductSubmit(e) {
   const newProduct = {
     id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now(),
     name,
+    developer,
     letter: name[0].toUpperCase(),
     logoUrl: finalLogo,
     color: pickedColor,

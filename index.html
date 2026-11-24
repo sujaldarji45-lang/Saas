@@ -41,10 +41,6 @@
           </svg>
         </button>
         <button class="btn btn-primary" id="openSubmitModalBtn">+ Submit Your Tool</button>
-        <button class="btn btn-admin" id="adminHeaderBtn">
-          <span class="admin-dot" id="adminStatusDot"></span>
-          <span id="adminBtnLabel">🛡️ Admin Login</span>
-        </button>
         <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">☰</button>
       </div>
     </div>
@@ -92,10 +88,12 @@
       </div>
     </section>
 
-    <!-- REAL CATEGORY STRIP -->
+    <!-- ELEVATED CATEGORY DOCK -->
     <section class="category-strip-section">
       <div class="container">
-        <div class="category-strip" id="quickCategoryStrip"></div>
+        <div class="category-dock-shell">
+          <div class="category-strip" id="quickCategoryStrip"></div>
+        </div>
       </div>
     </section>
 
@@ -206,7 +204,7 @@
             <h4>Pricing Model</h4>
             <div class="checkbox-list">
               <label><input type="checkbox" class="pricing-filter" value="Free" /> Free</label>
-              <label><input type="checkbox" class="pricing-filter" value="Freemium" /> Freemium</label>
+              <label><input type="checkbox" class="pricing-filter" value="Premium" /> Premium</label>
               <label><input type="checkbox" class="pricing-filter" value="Paid" /> Paid</label>
             </div>
           </div>
@@ -455,7 +453,8 @@
             <label class="field-label">Pricing Model *</label>
             <select id="pPricing" class="input" required>
               <option value="Free">Free</option>
-              <option value="Freemium">Freemium</option>
+              <option value="Free & Premium">Free & Premium</option>
+              <option value="Premium">Premium</option>
               <option value="Paid">Paid</option>
             </select>
           </div>
@@ -468,10 +467,16 @@
             <small class="error-msg" id="err-priceLabel"></small>
           </div>
           <div>
-            <label class="field-label">Target Audience / Best For *</label>
-            <input type="text" id="pBestFor" class="input" placeholder="e.g., Developers, Students, Startups" required />
-            <small class="error-msg" id="err-bestFor"></small>
+            <label class="field-label">Developer / Company Name</label>
+            <input type="text" id="pDeveloper" class="input" placeholder="e.g., OpenAI, Your Studio Name" />
+            <small class="error-msg" id="err-developer"></small>
           </div>
+        </div>
+
+        <div>
+          <label class="field-label">Target Audience / Best For *</label>
+          <input type="text" id="pBestFor" class="input" placeholder="e.g., Developers, Students, Startups" required />
+          <small class="error-msg" id="err-bestFor"></small>
         </div>
 
         <div>
