@@ -307,90 +307,94 @@ function saveProducts() {
 }
 
 // =========================================================================
-// SHARED CLOUD CATALOG SYNC (FOR GITHUB PAGES MULTI-USER VISIBILITY)
+// SHARED CLOUD CATALOG SYNC VIA FIREBASE REALTIME DATABASE (ALL VISITORS)
 // =========================================================================
-// GitHub Pages is static hosting; localStorage stays inside each user's browser.
-// This syncs newly added/removed tools across devices & visitors via JSONBlob API.
-const STORAGE_KEY_CLOUD_BLOB_URL = "techhub_cloud_blob_url_v1";
-let activeCloudBlobUrl = "";
+// Apna Firebase Realtime Database URL yahan daalein (trailing slash ke bina):
+// Example: const FIREBASE_DB_URL = "https://techhub-12345-default-rtdb.firebaseio.com";
+const FIREBASE_DB_URL = "https://online-tool-provide-default-rtdb.firebaseio.com";
 
-try {
-  activeCloudBlobUrl = localStorage.getItem(STORAGE_KEY_CLOUD_BLOB_URL) || "";
-} catch (e) {}
+function getFirebaseProductsEndpoint() {
+  const base = (FIREBASE_DB_URL || "").trim().replace(/\/+$/, "");
+  if (!base) return "";
+  return `${base}/products.json`;
+}
 
-function getLightweightCatalogPayload() {
-  const lightweightProducts = PRODUCTS.map(p => {
+function getFirebasePayloadProducts() {
+  return PRODUCTS.map(p => {
     const copy = { ...p };
-    if (copy.logoUrl && copy.logoUrl.startsWith("data:") && copy.logoUrl.length > 65000) {
+    if (copy.logoUrl && copy.logoUrl.startsWith("data:") && copy.logoUrl.length > 80000) {
       copy.logoUrl = "";
     }
     if (Array.isArray(copy.images)) {
-      copy.images = copy.images.filter(img => !img.startsWith("data:") || img.length <= 65000).slice(0, 2);
+      copy.images = copy.images.filter(img => !img.startsWith("data:") || img.length <= 80000).slice(0, 2);
     }
     return copy;
   });
-  return { updatedAt: Date.now(), products: lightweightProducts };
 }
 
-async function ensureCloudBlobUrl() {
-  if (activeCloudBlobUrl) return activeCloudBlobUrl;
-  try {
-    const res = await fetch("https://jsonblob.com/api/jsonBlob", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(getLightweightCatalogPayload())
-    });
-    const loc = res.headers.get("Location") || res.headers.get("X-JsonBlob");
-    if (loc) {
-      activeCloudBlobUrl = loc.startsWith("http") ? loc : `https://jsonblob.com/api/jsonBlob/${loc}`;
-      try {
-        localStorage.setItem(STORAGE_KEY_CLOUD_BLOB_URL, activeCloudBlobUrl);
-      } catch (e) {}
-    }
-  } catch (err) {}
-  return activeCloudBlobUrl;
+function getFirebaseSubmissionsEndpoint() {
+  const base = (FIREBASE_DB_URL || "").trim().replace(/\/+$/, "");
+  if (!base) return "";
+  return `${base}/submissions.json`;
+}
+
+function sanitizeSingleProductForCloud(p) {
+  const copy = { ...p };
+  if (copy.logoUrl && copy.logoUrl.startsWith("data:") && copy.logoUrl.length > 80000) {
+    copy.logoUrl = "";
+  }
+  if (Array.isArray(copy.images)) {
+    copy.images = copy.images.filter(img => !img.startsWith("data:") || img.length <= 80000).slice(0, 2);
+  }
+  return copy;
 }
 
 async function syncProductsFromCloud() {
-  if (!activeCloudBlobUrl) return;
+  const subEndpoint = getFirebaseSubmissionsEndpoint();
+  if (!subEndpoint) return;
   try {
-    const res = await fetch(activeCloudBlobUrl, {
-      method: "GET",
-      headers: { "Accept": "application/json" },
-      cache: "no-store"
-    });
+    const res = await fetch(subEndpoint, { cache: "no-store" });
     if (!res.ok) return;
-    const data = await res.json();
-    if (data && Array.isArray(data.products) && data.products.length > 0) {
-      PRODUCTS = data.products;
-      try {
-        localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(PRODUCTS));
-      } catch (e) {}
-      refreshAllViews();
-      const r = getInitialRoute();
-      if (r === "detail") renderProductDetail(selectedDetailId);
-    }
+    const rawSubs = await res.json();
+    if (!rawSubs || typeof rawSubs !== "object") return;
+
+    const cloudTools = Object.values(rawSubs).filter(item => item && typeof item === "object" && item.name && item.id);
+    if (!cloudTools.length) return;
+
+    const existingIds = new Set(PRODUCTS.map(p => p.id));
+    const merged = [...PRODUCTS];
+    cloudTools.forEach(tool => {
+      if (!existingIds.has(tool.id)) {
+        merged.unshift(tool);
+        existingIds.add(tool.id);
+      }
+    });
+
+    PRODUCTS = merged;
+    try {
+      localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(PRODUCTS));
+    } catch (e) {}
+    refreshAllViews();
+    const r = getInitialRoute();
+    if (r === "detail") renderProductDetail(selectedDetailId);
+  } catch (err) {}
+}
+
+async function pushNewToolToCloud(newProduct) {
+  const subEndpoint = getFirebaseSubmissionsEndpoint();
+  if (!subEndpoint || !newProduct) return;
+  try {
+    await fetch(subEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(sanitizeSingleProductForCloud(newProduct))
+    });
   } catch (err) {}
 }
 
 async function pushProductsToCloud() {
-  try {
-    const url = await ensureCloudBlobUrl();
-    if (!url) return;
-    await fetch(url, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(getLightweightCatalogPayload())
-    });
-  } catch (err) {}
+  // Keep catalog push safe/no-op for bulk overwrite; new tools use pushNewToolToCloud()
 }
-
 
 function loadFavorites() {
   try {
@@ -2161,6 +2165,7 @@ function handleFourStepFinalSubmit(e) {
 
   PRODUCTS.unshift(newProduct);
   saveProducts();
+  pushNewToolToCloud(newProduct);
 
   document.getElementById("fourStepSubmitForm").reset();
   if (document.getElementById("s4ConfirmCheck")) document.getElementById("s4ConfirmCheck").checked = false;
@@ -2479,6 +2484,7 @@ function handleVisitorProductSubmit(e) {
 
   PRODUCTS.unshift(newProduct);
   saveProducts();
+  pushNewToolToCloud(newProduct);
 
   e.target.reset();
   uploadedLogoDataUrl = "";
