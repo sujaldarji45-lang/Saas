@@ -349,6 +349,27 @@ function sanitizeSingleProductForCloud(p) {
   return copy;
 }
 
+const STORAGE_KEY_DELETED_IDS = "techhub_deleted_ids_v1";
+
+function getDeletedProductIds() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_DELETED_IDS);
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function addDeletedProductId(productId) {
+  if (!productId) return;
+  const set = getDeletedProductIds();
+  set.add(productId);
+  try {
+    localStorage.setItem(STORAGE_KEY_DELETED_IDS, JSON.stringify([...set]));
+  } catch (e) {}
+}
+
 async function syncProductsFromCloud() {
   const subEndpoint = getFirebaseSubmissionsEndpoint();
   if (!subEndpoint) return;
@@ -358,7 +379,10 @@ async function syncProductsFromCloud() {
     const rawSubs = await res.json();
     if (!rawSubs || typeof rawSubs !== "object") return;
 
-    const cloudTools = Object.values(rawSubs).filter(item => item && typeof item === "object" && item.name && item.id);
+    const deletedSet = getDeletedProductIds();
+    const cloudTools = Object.values(rawSubs).filter(
+      item => item && typeof item === "object" && item.name && item.id && !deletedSet.has(item.id)
+    );
     if (!cloudTools.length) return;
 
     const existingIds = new Set(PRODUCTS.map(p => p.id));
@@ -390,6 +414,33 @@ async function pushNewToolToCloud(newProduct) {
       body: JSON.stringify(sanitizeSingleProductForCloud(newProduct))
     });
   } catch (err) {}
+}
+
+async function deleteToolFromCloud(productId, productName = "") {
+  const base = (FIREBASE_DB_URL || "").trim().replace(/\/+$/, "");
+  if (!base || !productId) return false;
+  try {
+    const subEndpoint = `${base}/submissions.json`;
+    const res = await fetch(subEndpoint, { cache: "no-store" });
+    if (!res.ok) return false;
+    const rawSubs = await res.json();
+    if (!rawSubs || typeof rawSubs !== "object") return true;
+
+    const matchingKeys = Object.entries(rawSubs)
+      .filter(([, item]) => item && typeof item === "object" && (
+        item.id === productId || (productName && item.name === productName)
+      ))
+      .map(([key]) => key);
+
+    for (const key of matchingKeys) {
+      await fetch(`${base}/submissions/${encodeURIComponent(key)}.json`, {
+        method: "DELETE"
+      });
+    }
+    return true;
+  } catch (err) {
+    return false;
+  }
 }
 
 async function pushProductsToCloud() {
@@ -869,16 +920,25 @@ function renderAdminPanel() {
   renderAdminLiveToolsTable();
 }
 
-function adminDeleteProduct(productId) {
+async function adminDeleteProduct(productId) {
   const target = PRODUCTS.find(p => p.id === productId);
   if (!target) return;
+  addDeletedProductId(productId);
   PRODUCTS = PRODUCTS.filter(p => p.id !== productId);
   favoriteIds = favoriteIds.filter(id => id !== productId);
   compareIds = compareIds.filter(id => id !== productId);
-  saveProducts();
+  try {
+    localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(PRODUCTS));
+  } catch (e) {}
   saveFavorites();
   refreshAllViews();
-  showToast(`Removed "${target.name}" from directory.`);
+
+  const deletedCloud = await deleteToolFromCloud(productId, target.name);
+  if (deletedCloud) {
+    showToast(`🗑️ "${target.name}" removed from site & Firebase!`);
+  } else {
+    showToast(`Removed "${target.name}" locally (check Firebase Rules for delete).`);
+  }
 }
 
 // =========================================================================
