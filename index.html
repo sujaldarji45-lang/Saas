@@ -131,6 +131,350 @@
     </section>
   </main>
 
+  <!-- VIEW 1A-2: 4-STEP SUBMIT YOUR TOOL PAGE (MATCHING MOCKUPS) -->
+  <main id="view-submit" class="view">
+    <section class="submit-hero-banner" id="submitHeroBanner">
+      <div class="container submit-hero-grid">
+        <div>
+          <span class="submit-eyebrow-pill">Share Your Product with the World 🚀 ›</span>
+          <h1 id="submitBannerTitle">Submit Your Tool</h1>
+          <p class="submit-hero-sub" id="submitBannerSub">List your SaaS, AI tool, or digital product on TechHub and reach a global audience.</p>
+          <div class="submit-hero-checks" id="submitHeroPerks">
+            <span>✓ Free Submission</span>
+            <span>✓ Quick Review</span>
+            <span>✓ More Visibility</span>
+          </div>
+        </div>
+        <div class="submit-hero-right-badge" id="submitStepBadgeCard">
+          <div class="submit-step-badge-box" id="submitStepBadgeText">Step 1 of 4<br><small>Basic Information</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <!-- 4-STEP PROGRESS BAR -->
+        <div class="stepper-bar" id="submitStepperBar">
+          <div class="stepper-item active" data-step-nav="1" onclick="jumpToSubmitStep(1)">
+            <div class="stepper-circle">1</div>
+            <span>Basic Information</span>
+          </div>
+          <div class="stepper-connector"></div>
+          <div class="stepper-item" data-step-nav="2" onclick="jumpToSubmitStep(2)">
+            <div class="stepper-circle">2</div>
+            <span>Product Details</span>
+          </div>
+          <div class="stepper-connector"></div>
+          <div class="stepper-item" data-step-nav="3" onclick="jumpToSubmitStep(3)">
+            <div class="stepper-circle">3</div>
+            <span>Media &amp; Links</span>
+          </div>
+          <div class="stepper-connector"></div>
+          <div class="stepper-item" data-step-nav="4" onclick="jumpToSubmitStep(4)">
+            <div class="stepper-circle">4</div>
+            <span>Review &amp; Submit</span>
+          </div>
+        </div>
+
+        <!-- MAIN 2-COLUMN LAYOUT: LEFT 4-STEP FORM + RIGHT GUIDELINES & WHY SUBMIT -->
+        <div class="submit-main-grid mt-24">
+          <div class="submit-form-column">
+            <form id="fourStepSubmitForm" class="submit-card-panel" novalidate>
+              <!-- STEP 1: BASIC INFORMATION -->
+              <div class="submit-step-pane active" data-step-pane="1">
+                <div class="submit-pane-header">
+                  <div class="submit-pane-icon">📦</div>
+                  <div>
+                    <h2>Basic Information</h2>
+                    <p class="muted">Tell us about your tool</p>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div>
+                    <label class="field-label">Product / Tool Name *</label>
+                    <input type="text" id="s1Name" class="input" placeholder="Enter tool name (e.g. ChatGPT)" maxlength="40" />
+                    <small class="error-msg" id="err-s1-name"></small>
+                  </div>
+                  <div>
+                    <label class="field-label">Official Website URL *</label>
+                    <input type="url" id="s1Website" class="input" placeholder="https://yourtool.com" />
+                    <small class="error-msg" id="err-s1-website"></small>
+                  </div>
+                </div>
+
+                <div class="mt-12">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label class="field-label">Short Description *</label>
+                    <small class="muted" id="s1DescCounter">0/160</small>
+                  </div>
+                  <textarea id="s1Tagline" class="input" rows="2" maxlength="160" placeholder="A short description about your tool..."></textarea>
+                  <small class="error-msg" id="err-s1-tagline"></small>
+                </div>
+
+                <div class="form-row mt-12">
+                  <div>
+                    <label class="field-label">Main Category *</label>
+                    <select id="s1Category" class="input">
+                      <option value="">Select Category</option>
+                      <option value="AI Tools">AI Tools</option>
+                      <option value="Productivity">Productivity</option>
+                      <option value="Design">Design</option>
+                      <option value="Developer Tools">Developer Tools</option>
+                      <option value="SaaS">SaaS</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="Mobile Apps">Mobile Apps</option>
+                    </select>
+                    <small class="error-msg" id="err-s1-category"></small>
+                  </div>
+                  <div>
+                    <label class="field-label">Subcategory *</label>
+                    <select id="s1Subcategory" class="input">
+                      <option value="">Select Subcategory</option>
+                      <option value="AI Assistant & Chat">AI Assistant &amp; Chat</option>
+                      <option value="Code & DevOps">Code &amp; DevOps</option>
+                      <option value="UI/UX & Graphics">UI/UX &amp; Graphics</option>
+                      <option value="Workspace & Notes">Workspace &amp; Notes</option>
+                      <option value="Automation & Growth">Automation &amp; Growth</option>
+                    </select>
+                    <small class="error-msg" id="err-s1-subcategory"></small>
+                  </div>
+                </div>
+
+                <div class="form-row mt-12">
+                  <div>
+                    <label class="field-label">Product Type *</label>
+                    <div class="product-type-pills" id="s1TypePills">
+                      <button type="button" class="type-pill active" data-ptype="SaaS" onclick="selectSubmitProductType(this)">SaaS</button>
+                      <button type="button" class="type-pill" data-ptype="App" onclick="selectSubmitProductType(this)">App</button>
+                      <button type="button" class="type-pill" data-ptype="Software" onclick="selectSubmitProductType(this)">Software</button>
+                      <button type="button" class="type-pill" data-ptype="Other" onclick="selectSubmitProductType(this)">Other</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="field-label">Launch Date (Optional)</label>
+                    <input type="date" id="s1LaunchDate" class="input" />
+                  </div>
+                </div>
+
+                <div class="mt-12">
+                  <label class="field-label">Product Logo *</label>
+                  <div class="logo-dropzone" role="button" tabindex="0" onclick="document.getElementById('s1LogoFile').click()">
+                    <div id="s1LogoPreviewWrap" class="s1-logo-preview-wrap">
+                      <div id="s1LogoPlaceholderIcon" class="dropzone-cloud-icon">☁️↑</div>
+                      <img id="s1LogoPreviewImg" class="s1-logo-thumb hidden" alt="Logo Preview" />
+                    </div>
+                    <strong id="s1LogoLabel">Click to Upload Logo</strong>
+                    <small class="muted">PNG, JPG, WebP, SVG (Max 2MB) or paste URL below</small>
+                  </div>
+                  <input type="file" id="s1LogoFile" class="sr-file-input" accept="image/png, image/jpeg, image/webp, image/svg+xml" />
+                  <input type="url" id="s1LogoUrl" class="input mt-12" placeholder="Optional: Or paste logo image URL (https://...)" />
+                  <small class="error-msg" id="err-s1-logo"></small>
+                </div>
+
+                <div class="step-actions-row mt-24">
+                  <button type="button" class="btn btn-primary btn-lg" onclick="goSubmitStep(2)">Next Step →</button>
+                </div>
+              </div>
+
+              <!-- STEP 2: PRODUCT DETAILS -->
+              <div class="submit-step-pane" data-step-pane="2">
+                <div class="submit-pane-header">
+                  <div class="submit-pane-icon">📝</div>
+                  <div>
+                    <h2>Product Details</h2>
+                    <p class="muted">Tell us more about your tool</p>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label class="field-label">Detailed Description *</label>
+                    <small class="muted" id="s2DescCounter">0/2000</small>
+                  </div>
+                  <div class="rich-mini-toolbar">
+                    <button type="button" class="mini-fmt-btn" onclick="wrapRichText('s2Description', '**')"><strong>B</strong></button>
+                    <button type="button" class="mini-fmt-btn" onclick="wrapRichText('s2Description', '_')"><em>I</em></button>
+                    <button type="button" class="mini-fmt-btn" onclick="appendBulletLine('s2Description')">• List</button>
+                  </div>
+                  <textarea id="s2Description" class="input" rows="4" maxlength="2000" placeholder="Describe your tool in detail..."></textarea>
+                  <small class="error-msg" id="err-s2-description"></small>
+                </div>
+
+                <div class="mt-12">
+                  <label class="field-label">Key Features *</label>
+                  <div class="feature-tags-box" id="s2FeatureChips"></div>
+                  <div style="display:flex; gap:8px; margin-top:8px;">
+                    <input type="text" id="s2NewFeatureInput" class="input" placeholder="Type a feature (e.g. Fast AI chat) and click + Add Feature" />
+                    <button type="button" class="btn btn-outline btn-sm" id="s2AddFeatureBtn" style="white-space:nowrap;">+ Add Feature</button>
+                  </div>
+                  <small class="error-msg" id="err-s2-features"></small>
+                </div>
+
+                <div class="form-row mt-12">
+                  <div>
+                    <label class="field-label">Target Audience</label>
+                    <select id="s2BestFor" class="input">
+                      <option value="">Select Audience</option>
+                      <option value="Creators, developers, researchers & teams">Creators, developers, researchers &amp; teams</option>
+                      <option value="Startups, product teams & students">Startups, product teams &amp; students</option>
+                      <option value="UI/UX designers & frontend teams">UI/UX designers &amp; frontend teams</option>
+                      <option value="Full-stack & SaaS developers">Full-stack &amp; SaaS developers</option>
+                      <option value="Marketers, educators & small businesses">Marketers, educators &amp; small businesses</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="field-label">Main Benefits</label>
+                    <input type="text" id="s2Benefits" class="input" placeholder="e.g. Save time, increase productivity..." />
+                  </div>
+                </div>
+
+                <div class="form-row mt-12">
+                  <div>
+                    <label class="field-label">Pricing Model *</label>
+                    <select id="s2Pricing" class="input">
+                      <option value="">Select Pricing Model</option>
+                      <option value="Free">Free</option>
+                      <option value="Free & Premium">Free &amp; Premium</option>
+                      <option value="Premium">Premium</option>
+                      <option value="Paid">Paid</option>
+                    </select>
+                    <small class="error-msg" id="err-s2-pricing"></small>
+                  </div>
+                  <div>
+                    <label class="field-label">Starting Price (Optional)</label>
+                    <input type="text" id="s2PriceLabel" class="input" placeholder="e.g. Free, Free / $20 mo, $10 / mo" />
+                  </div>
+                </div>
+
+                <div class="step-actions-between mt-24">
+                  <button type="button" class="btn btn-outline" onclick="goSubmitStep(1)">← Back</button>
+                  <button type="button" class="btn btn-primary" onclick="goSubmitStep(3)">Next Step →</button>
+                </div>
+              </div>
+
+              <!-- STEP 3: MEDIA & ADDITIONAL LINKS -->
+              <div class="submit-step-pane" data-step-pane="3">
+                <div class="submit-pane-header">
+                  <div class="submit-pane-icon">🖼️</div>
+                  <div>
+                    <h2>Media &amp; Additional Links</h2>
+                    <p class="muted">Add visuals and links to showcase your tool</p>
+                  </div>
+                </div>
+
+                <div class="form-row" style="grid-template-columns: 0.75fr 1.25fr;">
+                  <div>
+                    <label class="field-label">Product Logo *</label>
+                    <div class="s3-logo-summary" id="s3LogoSummaryCard" style="cursor:pointer;" onclick="document.getElementById('s1LogoFile').click()" title="Click to change logo">
+                      <div id="s3LogoThumbWrap"></div>
+                      <small class="muted" id="s3LogoStatusText">Click to upload/change logo</small>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <label class="field-label">Images About Tool (Up to 5)</label>
+                      <span class="badge-pill" id="s3GalleryCount">0 / 5</span>
+                    </div>
+                    <div class="s3-screenshots-row" id="s3GalleryPreviewRow"></div>
+                    <input type="file" id="s3GalleryFiles" class="input mt-12" accept="image/png, image/jpeg, image/webp, image/gif" multiple />
+                    <small class="error-msg" id="err-s3-gallery"></small>
+                  </div>
+                </div>
+
+                <div class="form-row mt-12">
+                  <div>
+                    <label class="field-label">Demo Video URL (Optional)</label>
+                    <input type="url" id="s3DemoUrl" class="input" placeholder="https://youtube.com/watch?v=..." />
+                  </div>
+                  <div>
+                    <label class="field-label">Documentation URL (Optional)</label>
+                    <input type="url" id="s3DocsUrl" class="input" placeholder="https://docs.yourtool.com" />
+                  </div>
+                </div>
+
+                <div class="form-row mt-12">
+                  <div>
+                    <label class="field-label">Pricing Page URL (Optional)</label>
+                    <input type="url" id="s3PricingUrl" class="input" placeholder="https://yourtool.com/pricing" />
+                  </div>
+                  <div>
+                    <label class="field-label">Developer / Company Name</label>
+                    <input type="text" id="s3Developer" class="input" placeholder="e.g. OpenAI, Your Studio" />
+                  </div>
+                </div>
+
+                <div class="step-actions-between mt-24">
+                  <button type="button" class="btn btn-outline" onclick="goSubmitStep(2)">← Back</button>
+                  <button type="button" class="btn btn-primary" onclick="goSubmitStep(4)">Next Step →</button>
+                </div>
+              </div>
+
+              <!-- STEP 4: REVIEW & SUBMIT -->
+              <div class="submit-step-pane" data-step-pane="4">
+                <div class="submit-pane-header" style="justify-content:space-between;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="submit-pane-icon">✅</div>
+                    <div>
+                      <h2>Review Your Submission</h2>
+                      <p class="muted">Please review all information before submitting your tool.</p>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="jumpToSubmitStep(1)">✏️ Edit</button>
+                </div>
+
+                <div id="submitReviewSummaryBox" class="review-summary-card"></div>
+
+                <div class="mt-12">
+                  <label class="review-confirm-check">
+                    <input type="checkbox" id="s4ConfirmCheck" />
+                    <span>I confirm that I own this product or have the authorization to submit it. *</span>
+                  </label>
+                  <small class="error-msg" id="err-s4-confirm"></small>
+                </div>
+
+                <div class="step-actions-between mt-24">
+                  <button type="button" class="btn btn-outline" onclick="goSubmitStep(3)">← Back</button>
+                  <button type="submit" class="btn btn-primary btn-lg">➤ Submit Tool</button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- RIGHT SIDEBAR: SUBMISSION GUIDELINES & WHY SUBMIT -->
+          <aside class="submit-side-column">
+            <div class="submit-card-panel">
+              <h3>💡 Submission Guidelines</h3>
+              <ul class="submit-guideline-list mt-12">
+                <li><span class="g-check">✓</span><span>Provide accurate and detailed information.</span></li>
+                <li><span class="g-check">✓</span><span>Add clear description and high-quality images.</span></li>
+                <li><span class="g-check">✓</span><span>Choose the correct category.</span></li>
+                <li><span class="g-check">✓</span><span>Make sure your tool is publicly available.</span></li>
+                <li><span class="g-check">✓</span><span>Avoid spam or irrelevant links.</span></li>
+              </ul>
+            </div>
+
+            <div class="submit-card-panel side-why-card mt-12">
+              <h3>🚀 Why Submit with TechHub?</h3>
+              <ul class="submit-guideline-list mt-12">
+                <li><span class="g-check">✓</span><span>Reach a global audience</span></li>
+                <li><span class="g-check">✓</span><span>Get more traffic</span></li>
+                <li><span class="g-check">✓</span><span>Build credibility</span></li>
+                <li><span class="g-check">✓</span><span>100% Free</span></li>
+              </ul>
+            </div>
+
+            <div class="submit-card-panel mt-12">
+              <h4>🎧 Need Help?</h4>
+              <p class="muted" style="font-size:0.8rem; margin:4px 0 10px;">Have questions? Explore guides or contact our team.</p>
+              <button type="button" class="btn btn-outline btn-sm" style="width:100%;" onclick="switchView('blog')">Read Adviser Guides →</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
   <!-- VIEW 1B: LIVE DIRECTORY OVERVIEW (MOVED FROM HERO TO DEDICATED NAV TAB) -->
   <main id="view-overview" class="view">
     <section class="page-header" style="background: linear-gradient(120deg, #EFF6FF 0%, #ECFEFF 50%, #F5F3FF 100%);">

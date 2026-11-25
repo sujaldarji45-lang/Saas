@@ -380,7 +380,7 @@ function loadPersistedDetailId() {
 }
 
 function getInitialRoute() {
-  const validRoutes = ["home", "overview", "directory", "detail", "compare", "adviser", "dashboard", "blog", "admin"];
+  const validRoutes = ["home", "submit", "overview", "directory", "detail", "compare", "adviser", "dashboard", "blog", "admin"];
   try {
     const hash = (window.location.hash || "").replace(/^#/, "");
     if (hash.startsWith("tool/")) {
@@ -411,11 +411,14 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSearchAndEvents();
   setupSubmissionModal();
   setupAdminAuthModal();
+  setupFourStepSubmitEvents();
   setupBlogEvents();
   renderBlogView();
 
   const initialRoute = getInitialRoute();
-  if (initialRoute === "detail") {
+  if (initialRoute === "submit") {
+    initFourStepSubmitView(false);
+  } else if (initialRoute === "detail") {
     renderProductDetail(selectedDetailId);
   } else if (initialRoute === "compare") {
     renderCompareMatrix();
@@ -1443,11 +1446,474 @@ function runAiAdviser(promptText) {
 }
 
 // =========================================================================
-// 5. VISITOR PRODUCT SUBMISSION MODAL & VALIDATION
+// 5. 4-STEP VISITOR TOOL SUBMISSION WORKFLOW
 // =========================================================================
+let currentSubmitStep = 1;
+let submitSelectedType = "SaaS";
+let submitFeaturesList = ["AI-Powered", "Easy to Use", "Fast Performance"];
+
 function openSubmitModal() {
+  initFourStepSubmitView(true);
+  switchView("submit");
+}
+
+function initFourStepSubmitView(resetStep = false) {
+  if (resetStep) currentSubmitStep = 1;
+  renderSubmitStepUI();
+  renderSubmitFeaturesChips();
+  syncStep3And4Previews();
+}
+
+function jumpToSubmitStep(targetStep) {
+  if (targetStep < currentSubmitStep) {
+    currentSubmitStep = targetStep;
+    renderSubmitStepUI();
+    syncStep3And4Previews();
+  } else {
+    goSubmitStep(targetStep);
+  }
+}
+
+function goSubmitStep(nextStep) {
+  if (nextStep > currentSubmitStep) {
+    if (currentSubmitStep === 1 && !validateSubmitStep1()) return;
+    if (currentSubmitStep === 2 && !validateSubmitStep2()) return;
+  }
+  currentSubmitStep = nextStep;
+  renderSubmitStepUI();
+  syncStep3And4Previews();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderSubmitStepUI() {
+  const stepTitles = {
+    1: { title: "Submit Your Tool", sub: "List your SaaS, AI tool, or digital product on TechHub and reach a global audience.", badge: "Step 1 of 4<br><small>Basic Information</small>" },
+    2: { title: "Submit Your Tool", sub: "Share your amazing tool with our community and reach a global audience.", badge: "Step 2 of 4<br><small>Product Details</small>" },
+    3: { title: "Submit Your Tool", sub: "Share your amazing tool with our community and reach a global audience.", badge: "Step 3 of 4<br><small>Media &amp; Links</small>" },
+    4: { title: "Submit Your Tool", sub: "Share your amazing tool with our community and reach a global audience.", badge: "Step 4 of 4<br><small>Review &amp; Submit</small>" }
+  };
+
+  const info = stepTitles[currentSubmitStep] || stepTitles[1];
+  const titleEl = document.getElementById("submitBannerTitle");
+  const subEl = document.getElementById("submitBannerSub");
+  const badgeEl = document.getElementById("submitStepBadgeText");
+  const perksEl = document.getElementById("submitHeroPerks");
+
+  if (titleEl) titleEl.textContent = info.title;
+  if (subEl) subEl.textContent = info.sub;
+  if (badgeEl) badgeEl.innerHTML = info.badge;
+  if (perksEl) perksEl.classList.toggle("hidden", currentSubmitStep > 1);
+
+  document.querySelectorAll("#submitStepperBar .stepper-item").forEach(item => {
+    const stepNum = parseInt(item.dataset.stepNav, 10);
+    item.classList.remove("active", "completed");
+    if (stepNum < currentSubmitStep) {
+      item.classList.add("completed");
+    } else if (stepNum === currentSubmitStep) {
+      item.classList.add("active");
+    }
+  });
+
+  document.querySelectorAll("#fourStepSubmitForm .submit-step-pane").forEach(pane => {
+    const pNum = parseInt(pane.dataset.stepPane, 10);
+    pane.classList.toggle("active", pNum === currentSubmitStep);
+  });
+}
+
+function validateSubmitStep1() {
+  ["err-s1-name", "err-s1-website", "err-s1-tagline", "err-s1-category", "err-s1-subcategory", "err-s1-logo"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = "";
+  });
+  ["s1Name", "s1Website", "s1Tagline", "s1Category", "s1Subcategory", "s1LogoUrl"].forEach(id => {
+    document.getElementById(id)?.classList.remove("invalid");
+  });
+
+  const name = (document.getElementById("s1Name")?.value || "").trim();
+  const website = (document.getElementById("s1Website")?.value || "").trim();
+  const tagline = (document.getElementById("s1Tagline")?.value || "").trim();
+  const category = (document.getElementById("s1Category")?.value || "").trim();
+  const subcategory = (document.getElementById("s1Subcategory")?.value || "").trim();
+  const logoUrl = (document.getElementById("s1LogoUrl")?.value || "").trim();
+
+  let ok = true;
+  if (name.length < 2) {
+    document.getElementById("s1Name")?.classList.add("invalid");
+    document.getElementById("err-s1-name").textContent = "Product / Tool name must be at least 2 characters.";
+    ok = false;
+  } else if (PRODUCTS.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+    document.getElementById("s1Name")?.classList.add("invalid");
+    document.getElementById("err-s1-name").textContent = "A product with this name is already listed.";
+    ok = false;
+  }
+
+  if (!website || !isValidHttpUrl(website)) {
+    document.getElementById("s1Website")?.classList.add("invalid");
+    document.getElementById("err-s1-website").textContent = "Enter a valid website URL (https://...).";
+    ok = false;
+  }
+
+  if (tagline.length < 10) {
+    document.getElementById("s1Tagline")?.classList.add("invalid");
+    document.getElementById("err-s1-tagline").textContent = "Short description must be at least 10 characters.";
+    ok = false;
+  }
+
+  if (!category) {
+    document.getElementById("s1Category")?.classList.add("invalid");
+    document.getElementById("err-s1-category").textContent = "Please select a main category.";
+    ok = false;
+  }
+
+  if (!subcategory) {
+    document.getElementById("s1Subcategory")?.classList.add("invalid");
+    document.getElementById("err-s1-subcategory").textContent = "Please select a subcategory.";
+    ok = false;
+  }
+
+  if (logoUrl && !isValidHttpUrl(logoUrl)) {
+    document.getElementById("s1LogoUrl")?.classList.add("invalid");
+    document.getElementById("err-s1-logo").textContent = "Logo URL must be a valid https:// link.";
+    ok = false;
+  }
+
+  if (!ok) showToast("Please complete required fields in Step 1.");
+  return ok;
+}
+
+function validateSubmitStep2() {
+  ["err-s2-description", "err-s2-features", "err-s2-pricing"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = "";
+  });
+  ["s2Description", "s2Pricing"].forEach(id => document.getElementById(id)?.classList.remove("invalid"));
+
+  const desc = (document.getElementById("s2Description")?.value || "").trim();
+  const pricing = (document.getElementById("s2Pricing")?.value || "").trim();
+  let ok = true;
+
+  if (desc.length < 20) {
+    document.getElementById("s2Description")?.classList.add("invalid");
+    document.getElementById("err-s2-description").textContent = "Please write at least 20 characters in detailed description.";
+    ok = false;
+  }
+
+  if (!submitFeaturesList.length) {
+    document.getElementById("err-s2-features").textContent = "Add at least 1 key feature.";
+    ok = false;
+  }
+
+  if (!pricing) {
+    document.getElementById("s2Pricing")?.classList.add("invalid");
+    document.getElementById("err-s2-pricing").textContent = "Please choose a pricing model.";
+    ok = false;
+  }
+
+  if (!ok) showToast("Please complete required fields in Step 2.");
+  return ok;
+}
+
+function renderSubmitFeaturesChips() {
+  const box = document.getElementById("s2FeatureChips");
+  if (!box) return;
+  box.innerHTML = submitFeaturesList.map((feat, idx) => `
+    <span class="feat-chip-pill">
+      ✓ ${escapeHTML(feat)}
+      <button type="button" onclick="removeSubmitFeature(${idx})" title="Remove">✕</button>
+    </span>
+  `).join("");
+}
+
+function removeSubmitFeature(idx) {
+  submitFeaturesList.splice(idx, 1);
+  renderSubmitFeaturesChips();
+}
+
+function wrapRichText(textareaId, marker) {
+  const el = document.getElementById(textareaId);
+  if (!el) return;
+  const start = el.selectionStart || 0;
+  const end = el.selectionEnd || 0;
+  const selected = el.value.slice(start, end) || "text";
+  el.value = el.value.slice(0, start) + marker + selected + marker + el.value.slice(end);
+  el.dispatchEvent(new Event("input"));
+}
+
+function appendBulletLine(textareaId) {
+  const el = document.getElementById(textareaId);
+  if (!el) return;
+  const prefix = el.value && !el.value.endsWith("\n") ? "\n" : "";
+  el.value = el.value + prefix + "• ";
+  el.dispatchEvent(new Event("input"));
+}
+
+function syncStep3And4Previews() {
+  const name = (document.getElementById("s1Name")?.value || "").trim() || "Your Tool";
+  const website = (document.getElementById("s1Website")?.value || "").trim() || "https://yourtool.com";
+  const tagline = (document.getElementById("s1Tagline")?.value || "").trim() || "";
+  const category = (document.getElementById("s1Category")?.value || "").trim() || "AI Tools";
+  const subcategory = (document.getElementById("s1Subcategory")?.value || "").trim();
+  const launchDate = (document.getElementById("s1LaunchDate")?.value || "").trim() || "Today";
+  const description = (document.getElementById("s2Description")?.value || "").trim() || "";
+  const bestFor = (document.getElementById("s2BestFor")?.value || "").trim() || "Creators & teams";
+  const pricing = (document.getElementById("s2Pricing")?.value || "").trim() || "Free & Premium";
+  const priceLabel = (document.getElementById("s2PriceLabel")?.value || "").trim() || (pricing === "Free" ? "Free" : "Free / Paid");
+  const developer = (document.getElementById("s3Developer")?.value || "").trim() || "Community Creator";
+  const finalLogo = uploadedLogoDataUrl || (document.getElementById("s1LogoUrl")?.value || "").trim();
+
+  // Step 3 preview sync
+  const s3Thumb = document.getElementById("s3LogoThumbWrap");
+  const s3Status = document.getElementById("s3LogoStatusText");
+  if (s3Thumb) {
+    s3Thumb.innerHTML = finalLogo
+      ? `<img src="${escapeHTML(finalLogo)}" class="s1-logo-thumb" alt="Logo" />`
+      : `<div class="app-icon" style="background:#2563EB; width:56px; height:56px; font-size:1.4rem;">${escapeHTML(name[0].toUpperCase())}</div>`;
+  }
+  if (s3Status) s3Status.textContent = finalLogo ? "Custom logo attached" : `Letter badge (${name[0].toUpperCase()})`;
+
+  const s3Count = document.getElementById("s3GalleryCount");
+  const s3Row = document.getElementById("s3GalleryPreviewRow");
+  if (s3Count) s3Count.textContent = `${uploadedGalleryImages.length} / 5`;
+  if (s3Row) {
+    s3Row.innerHTML = uploadedGalleryImages.map((src, idx) => `
+      <div class="gallery-upload-item">
+        <img src="${escapeHTML(src)}" alt="Preview ${idx + 1}" />
+        <button type="button" class="gallery-remove-btn" onclick="removeUploadedGalleryImage(${idx}); syncStep3And4Previews();">✕</button>
+      </div>
+    `).join("") || `<small class="muted">No extra images added yet (up to 5 allowed).</small>`;
+  }
+
+  // Step 4 review card sync
+  const revBox = document.getElementById("submitReviewSummaryBox");
+  if (revBox) {
+    const logoHtml = finalLogo
+      ? `<img src="${escapeHTML(finalLogo)}" class="s1-logo-thumb" alt="${escapeHTML(name)}" />`
+      : `<div class="app-icon" style="background:#2563EB; width:56px; height:56px; font-size:1.4rem;">${escapeHTML(name[0].toUpperCase())}</div>`;
+
+    revBox.innerHTML = `
+      <div class="review-top-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          ${logoHtml}
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <h3>${escapeHTML(name)}</h3>
+              <span class="tag-pill">${escapeHTML(submitSelectedType)}</span>
+            </div>
+            <div class="text-btn" style="font-size:0.82rem;">${escapeHTML(website)}</div>
+            <p class="muted" style="font-size:0.84rem; margin-top:4px;">${escapeHTML(tagline)}</p>
+          </div>
+        </div>
+        <div class="review-meta-grid">
+          <div><small class="muted">Category</small><strong>${escapeHTML(category)}${subcategory ? ` • ${escapeHTML(subcategory)}` : ""}</strong></div>
+          <div><small class="muted">Pricing</small><strong>${escapeHTML(priceLabel)}</strong></div>
+          <div><small class="muted">Launch Date</small><strong>${escapeHTML(launchDate)}</strong></div>
+        </div>
+      </div>
+
+      <p class="muted" style="font-size:0.86rem; margin-top:12px;">${escapeHTML(description)}</p>
+
+      <div class="review-bottom-cols mt-12">
+        <div>
+          <strong style="font-size:0.84rem;">Key Features</strong>
+          <ul class="review-check-list mt-12">
+            ${submitFeaturesList.map(f => `<li>✓ ${escapeHTML(f)}</li>`).join("")}
+          </ul>
+        </div>
+        <div>
+          <strong style="font-size:0.84rem;">Images (${uploadedGalleryImages.length} / 5)</strong>
+          <div class="review-thumbs-row mt-12">
+            ${uploadedGalleryImages.map(src => `<img src="${escapeHTML(src)}" alt="Screenshot" />`).join("") || `<span class="muted" style="font-size:0.8rem;">None</span>`}
+          </div>
+        </div>
+        <div>
+          <strong style="font-size:0.84rem;">Company &amp; Audience</strong>
+          <div class="muted" style="font-size:0.82rem; margin-top:6px;">
+            <div><strong>${escapeHTML(developer)}</strong></div>
+            <div>Best for: ${escapeHTML(bestFor)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function selectSubmitProductType(btn) {
+  if (!btn) return;
+  submitSelectedType = btn.dataset.ptype || btn.textContent.trim() || "SaaS";
+  document.querySelectorAll("#s1TypePills .type-pill").forEach(b => b.classList.toggle("active", b === btn));
+}
+
+function setupFourStepSubmitEvents() {
+  const s1Tag = document.getElementById("s1Tagline");
+  const s1Cnt = document.getElementById("s1DescCounter");
+  if (s1Tag && s1Cnt) {
+    s1Tag.addEventListener("input", () => {
+      s1Cnt.textContent = `${s1Tag.value.length}/160`;
+    });
+  }
+
+  const s2Desc = document.getElementById("s2Description");
+  const s2Cnt = document.getElementById("s2DescCounter");
+  if (s2Desc && s2Cnt) {
+    s2Desc.addEventListener("input", () => {
+      s2Cnt.textContent = `${s2Desc.value.length}/2000`;
+    });
+  }
+
+  document.querySelectorAll("#s1TypePills .type-pill").forEach(btn => {
+    btn.addEventListener("click", () => selectSubmitProductType(btn));
+  });
+
+  const s1LogoFile = document.getElementById("s1LogoFile");
+  const s1LogoUrl = document.getElementById("s1LogoUrl");
+  if (s1LogoFile) {
+    s1LogoFile.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      const errEl = document.getElementById("err-s1-logo");
+      if (errEl) errEl.textContent = "";
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        if (errEl) errEl.textContent = "Only image files (PNG, JPG, WebP, SVG) are allowed.";
+        s1LogoFile.value = "";
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        if (errEl) errEl.textContent = "Logo image must be under 2MB.";
+        s1LogoFile.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        uploadedLogoDataUrl = reader.result;
+        if (s1LogoUrl) s1LogoUrl.value = "";
+        const img = document.getElementById("s1LogoPreviewImg");
+        const ph = document.getElementById("s1LogoPlaceholderIcon");
+        const lbl = document.getElementById("s1LogoLabel");
+        if (img) { img.src = uploadedLogoDataUrl; img.classList.remove("hidden"); }
+        if (ph) ph.classList.add("hidden");
+        if (lbl) lbl.textContent = file.name;
+        syncStep3And4Previews();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (s1LogoUrl) {
+    s1LogoUrl.addEventListener("input", () => {
+      const url = s1LogoUrl.value.trim();
+      const img = document.getElementById("s1LogoPreviewImg");
+      const ph = document.getElementById("s1LogoPlaceholderIcon");
+      if (url) {
+        uploadedLogoDataUrl = "";
+        if (s1LogoFile) s1LogoFile.value = "";
+        if (img) { img.src = url; img.classList.remove("hidden"); }
+        if (ph) ph.classList.add("hidden");
+      } else {
+        if (img) img.classList.add("hidden");
+        if (ph) ph.classList.remove("hidden");
+      }
+    });
+  }
+
+  const addFeatBtn = document.getElementById("s2AddFeatureBtn");
+  const newFeatInput = document.getElementById("s2NewFeatureInput");
+  if (addFeatBtn && newFeatInput) {
+    addFeatBtn.addEventListener("click", () => {
+      const val = newFeatInput.value.trim();
+      if (!val) return;
+      submitFeaturesList.push(val);
+      newFeatInput.value = "";
+      renderSubmitFeaturesChips();
+    });
+  }
+
+  const s3GalleryFiles = document.getElementById("s3GalleryFiles");
+  if (s3GalleryFiles) {
+    s3GalleryFiles.addEventListener("change", (e) => {
+      handleGalleryFilesChange(e);
+      syncStep3And4Previews();
+    });
+  }
+
+  const fourStepForm = document.getElementById("fourStepSubmitForm");
+  if (fourStepForm) {
+    fourStepForm.addEventListener("submit", handleFourStepFinalSubmit);
+  }
+}
+
+function handleFourStepFinalSubmit(e) {
+  e.preventDefault();
+  const errConfirm = document.getElementById("err-s4-confirm");
+  const checked = document.getElementById("s4ConfirmCheck")?.checked;
+  if (errConfirm) errConfirm.textContent = "";
+  if (!checked) {
+    if (errConfirm) errConfirm.textContent = "Please confirm that you own or have authorization to submit this tool.";
+    showToast("Please confirm authorization checkbox.");
+    return;
+  }
+
+  if (!validateSubmitStep1()) { jumpToSubmitStep(1); return; }
+  if (!validateSubmitStep2()) { jumpToSubmitStep(2); return; }
+
+  const name = document.getElementById("s1Name").value.trim();
+  const website = document.getElementById("s1Website").value.trim();
+  const tagline = document.getElementById("s1Tagline").value.trim();
+  const category = document.getElementById("s1Category").value.trim();
+  const launchDate = (document.getElementById("s1LaunchDate").value || "").trim();
+  const description = document.getElementById("s2Description").value.trim();
+  const bestFor = (document.getElementById("s2BestFor").value || "").trim() || `Creators & ${submitSelectedType} users`;
+  const pricing = document.getElementById("s2Pricing").value.trim();
+  const priceLabel = (document.getElementById("s2PriceLabel").value || "").trim() || (pricing === "Free" ? "Free" : "Free / Paid");
+  const developer = (document.getElementById("s3Developer").value || "").trim() || "Community Creator";
+  const finalLogo = uploadedLogoDataUrl || (document.getElementById("s1LogoUrl")?.value || "").trim() || "";
+  const colors = ["#2563EB", "#0284C7", "#059669", "#7C3AED", "#D97706", "#0F172A"];
+  const pickedColor = colors[PRODUCTS.length % colors.length];
+  const nowStr = launchDate || new Date().toLocaleString([], { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+  const newProduct = {
+    id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now(),
+    name,
+    developer,
+    letter: name[0].toUpperCase(),
+    logoUrl: finalLogo,
+    color: pickedColor,
+    category,
+    pricing,
+    priceLabel,
+    rating: 5.0,
+    isUserSubmitted: true,
+    addedAt: nowStr,
+    tagline,
+    description,
+    features: [...submitFeaturesList],
+    bestFor,
+    website,
+    images: [...uploadedGalleryImages],
+    reviews: []
+  };
+
+  PRODUCTS.unshift(newProduct);
+  saveProducts();
+
+  document.getElementById("fourStepSubmitForm").reset();
+  if (document.getElementById("s4ConfirmCheck")) document.getElementById("s4ConfirmCheck").checked = false;
+  uploadedLogoDataUrl = "";
+  uploadedGalleryImages = [];
+  submitFeaturesList = ["AI-Powered", "Easy to Use", "Fast Performance"];
+  submitSelectedType = "SaaS";
+  document.querySelectorAll("#s1TypePills .type-pill").forEach((b, i) => b.classList.toggle("active", i === 0));
+  document.getElementById("s1LogoPreviewImg")?.classList.add("hidden");
+  document.getElementById("s1LogoPlaceholderIcon")?.classList.remove("hidden");
+  if (document.getElementById("s1LogoLabel")) document.getElementById("s1LogoLabel").textContent = "Upload Logo";
+
+  refreshAllViews();
+  showToast(`🎉 "${name}" published live on TechHub!`);
+  openProductDetail(newProduct.id);
+}
+
+function openSubmitModalLegacy() {
   clearFormErrors();
-  document.getElementById("submitModal").classList.remove("hidden");
+  document.getElementById("submitModal")?.classList.remove("hidden");
 }
 
 function closeSubmitModal() {
