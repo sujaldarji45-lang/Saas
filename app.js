@@ -303,7 +303,63 @@ function saveProducts() {
   } catch (e) {
     showToast("Browser storage full — active in current session.");
   }
+  pushProductsToCloud();
 }
+
+// =========================================================================
+// SHARED CLOUD CATALOG SYNC (FOR GITHUB PAGES MULTI-USER VISIBILITY)
+// =========================================================================
+// Note: GitHub Pages is static hosting; localStorage alone stays in one browser.
+// Below cloud endpoint syncs newly submitted tools across all visitors/devices!
+const CLOUD_CATALOG_ENDPOINT = "https://jsonblob.com/api/jsonBlob/019ab8d4-7f2a-7b3c-9e11-4c8d92a10f55";
+
+async function syncProductsFromCloud() {
+  try {
+    const res = await fetch(CLOUD_CATALOG_ENDPOINT, {
+      method: "GET",
+      headers: { "Accept": "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && Array.isArray(data.products) && data.products.length > 0) {
+      PRODUCTS = data.products;
+      try {
+        localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(PRODUCTS));
+      } catch (e) {}
+      refreshAllViews();
+      const r = getInitialRoute();
+      if (r === "detail") renderProductDetail(selectedDetailId);
+    }
+  } catch (err) {
+    // Offline or blocked CORS: continue smoothly with localStorage + DEFAULT_PRODUCTS
+  }
+}
+
+async function pushProductsToCloud() {
+  try {
+    // Strip heavy base64 screenshots if payload > 450KB so cloud sync always succeeds
+    const lightweightProducts = PRODUCTS.map(p => {
+      const copy = { ...p };
+      if (copy.logoUrl && copy.logoUrl.startsWith("data:") && copy.logoUrl.length > 90000) {
+        copy.logoUrl = "";
+      }
+      if (Array.isArray(copy.images)) {
+        copy.images = copy.images.filter(img => !img.startsWith("data:") || img.length <= 90000).slice(0, 3);
+      }
+      return copy;
+    });
+    await fetch(CLOUD_CATALOG_ENDPOINT, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ updatedAt: Date.now(), products: lightweightProducts })
+    });
+  } catch (err) {}
+}
+
 
 function loadFavorites() {
   try {
@@ -382,7 +438,10 @@ function loadPersistedDetailId() {
 function getInitialRoute() {
   const validRoutes = ["home", "submit", "overview", "directory", "detail", "compare", "adviser", "dashboard", "blog", "admin"];
   try {
-    const hash = (window.location.hash || "").replace(/^#/, "");
+    const hash = (window.location.hash || "").replace(/^#/, "").trim();
+    if (!hash) {
+      return "home";
+    }
     if (hash.startsWith("tool/")) {
       const toolId = decodeURIComponent(hash.slice(5));
       if (PRODUCTS.some(p => p.id === toolId)) {
@@ -394,11 +453,6 @@ function getInitialRoute() {
       if (hash === "admin" && !getAdminSession()) return "home";
       return hash;
     }
-    const savedRoute = localStorage.getItem(STORAGE_KEY_ACTIVE_ROUTE);
-    if (savedRoute && validRoutes.includes(savedRoute)) {
-      if (savedRoute === "admin" && !getAdminSession()) return "home";
-      return savedRoute;
-    }
   } catch (e) {}
   return "home";
 }
@@ -407,6 +461,7 @@ function getInitialRoute() {
 document.addEventListener("DOMContentLoaded", () => {
   updateAdminHeaderUI();
   refreshAllViews();
+  syncProductsFromCloud();
   setupNavigation();
   setupSearchAndEvents();
   setupSubmissionModal();
@@ -433,6 +488,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.addEventListener("hashchange", () => {
     const r = getInitialRoute();
+    if (r === "submit") initFourStepSubmitView(false);
     if (r === "detail") renderProductDetail(selectedDetailId);
     if (r === "compare") renderCompareMatrix();
     if (r === "dashboard") renderSavedToolsView();
@@ -1465,7 +1521,7 @@ let currentSubmitStep = 1;
 let submitSelectedType = "SaaS";
 let submitFeaturesList = ["AI-Powered", "Easy to Use", "Fast Performance"];
 let submitPricingPlans = [
-  { planName: "Free Plan", price: "Free ($0)", cycle: "Free" }
+  { planName: "Free Plan", currency: "$", price: "0", cycle: "Free" }
 ];
 
 function openSubmitModal() {
@@ -1479,6 +1535,20 @@ function initFourStepSubmitView(resetStep = false) {
   renderSubmitFeaturesChips();
   renderSubmitPricingPlans();
   syncStep3And4Previews();
+}
+
+function sanitizeNumericPrice(raw) {
+  const cleaned = String(raw || "").replace(/[^0-9.]/g, "");
+  const parts = cleaned.split(".");
+  if (parts.length <= 1) return cleaned;
+  return parts[0] + "." + parts.slice(1).join("");
+}
+
+function formatPlanDisplayPrice(pl) {
+  const numStr = sanitizeNumericPrice(pl.price);
+  const cur = pl.currency || "$";
+  if (!numStr || Number(numStr) === 0) return `Free (${cur}0)`;
+  return `${cur}${numStr}`;
 }
 
 function renderSubmitPricingPlans() {
@@ -1502,25 +1572,45 @@ function renderSubmitPricingPlans() {
         value="${escapeHTML(pl.planName)}"
         oninput="updateSubmitPlanField(${idx}, 'planName', this.value)"
       />
-      <input
-        type="text"
-        class="input"
-        placeholder="Price (e.g. $0, $20, ₹1,650)"
-        value="${escapeHTML(pl.price)}"
-        oninput="updateSubmitPlanField(${idx}, 'price', this.value)"
-      />
+      <div class="numeric-price-group">
+        <select class="input currency-mini-select" onchange="updateSubmitPlanField(${idx}, 'currency', this.value)" title="Currency">
+          <option value="$" ${(pl.currency || "$") === "$" ? "selected" : ""}>$</option>
+          <option value="₹" ${pl.currency === "₹" ? "selected" : ""}>₹</option>
+          <option value="€" ${pl.currency === "€" ? "selected" : ""}>€</option>
+        </select>
+        <input
+          type="text"
+          inputmode="decimal"
+          class="input"
+          placeholder="0"
+          value="${escapeHTML(sanitizeNumericPrice(pl.price))}"
+          oninput="handleNumericPlanPriceInput(${idx}, this)"
+        />
+      </div>
       <select class="input" onchange="updateSubmitPlanField(${idx}, 'cycle', this.value)">
         <option value="Free" ${pl.cycle === "Free" ? "selected" : ""}>Free</option>
         <option value="Monthly" ${pl.cycle === "Monthly" ? "selected" : ""}>Monthly</option>
         <option value="Yearly" ${pl.cycle === "Yearly" ? "selected" : ""}>Yearly</option>
         <option value="One-time" ${pl.cycle === "One-time" ? "selected" : ""}>One-time</option>
-        <option value="Custom" ${pl.cycle === "Custom" ? "selected" : ""}>Custom</option>
       </select>
       ${submitPricingPlans.length > 1
         ? `<button type="button" class="icon-btn" style="width:34px;height:34px;color:#EF4444;" onclick="removeSubmitPricingPlan(${idx})" title="Remove Plan">✕</button>`
         : `<span style="width:34px;"></span>`}
     </div>
   `).join("");
+}
+
+function handleNumericPlanPriceInput(idx, inputEl) {
+  const raw = inputEl.value;
+  const numericOnly = sanitizeNumericPrice(raw);
+  const errEl = document.getElementById("err-s2-plans");
+  if (raw !== numericOnly) {
+    inputEl.value = numericOnly;
+    if (errEl) errEl.textContent = "Price field mein sirf numbers (0-9) allowed hain.";
+  } else if (errEl) {
+    errEl.textContent = "";
+  }
+  updateSubmitPlanField(idx, "price", numericOnly);
 }
 
 function addSubmitPricingPlan() {
@@ -1532,14 +1622,14 @@ function addSubmitPricingPlan() {
     return;
   }
   const presets = [
-    { planName: "Free Plan", price: "$0", cycle: "Free" },
-    { planName: "Pro Monthly", price: "$20", cycle: "Monthly" },
-    { planName: "Pro Yearly", price: "$199", cycle: "Yearly" },
-    { planName: "Team Plan", price: "$30 / user", cycle: "Monthly" },
-    { planName: "Business Yearly", price: "$290 / user", cycle: "Yearly" },
-    { planName: "Enterprise", price: "Custom", cycle: "Custom" }
+    { planName: "Free Plan", currency: "$", price: "0", cycle: "Free" },
+    { planName: "Pro Monthly", currency: "$", price: "20", cycle: "Monthly" },
+    { planName: "Pro Yearly", currency: "$", price: "199", cycle: "Yearly" },
+    { planName: "Team Monthly", currency: "$", price: "30", cycle: "Monthly" },
+    { planName: "Business Yearly", currency: "$", price: "290", cycle: "Yearly" },
+    { planName: "Enterprise", currency: "$", price: "499", cycle: "Yearly" }
   ];
-  const nextPreset = presets[submitPricingPlans.length] || { planName: "", price: "", cycle: "Monthly" };
+  const nextPreset = presets[submitPricingPlans.length] || { planName: "", currency: "$", price: "", cycle: "Monthly" };
   submitPricingPlans.push({ ...nextPreset });
   renderSubmitPricingPlans();
 }
@@ -1557,14 +1647,14 @@ function removeSubmitPricingPlan(idx) {
 
 function buildCombinedPriceLabel(plans, fallbackPricing, manualLabel) {
   if (manualLabel && manualLabel.trim()) return manualLabel.trim();
-  const valid = (plans || []).filter(pl => (pl.planName || "").trim() || (pl.price || "").trim());
+  const valid = (plans || []).filter(pl => (pl.planName || "").trim() && sanitizeNumericPrice(pl.price) !== "");
   if (!valid.length) return fallbackPricing === "Free" ? "Free" : "Free / Paid";
   return valid
     .slice(0, 3)
     .map(pl => {
-      const pr = (pl.price || pl.planName || "").trim();
-      const cyc = pl.cycle && pl.cycle !== "Free" && pl.cycle !== "Custom" ? `/${pl.cycle === "Monthly" ? "mo" : pl.cycle === "Yearly" ? "yr" : pl.cycle}` : "";
-      return `${pr}${cyc}`;
+      const disp = formatPlanDisplayPrice(pl);
+      const cyc = pl.cycle && pl.cycle !== "Free" ? `/${pl.cycle === "Monthly" ? "mo" : pl.cycle === "Yearly" ? "yr" : pl.cycle}` : "";
+      return `${disp}${cyc}`;
     })
     .join(" • ");
 }
@@ -1716,9 +1806,13 @@ function validateSubmitStep2() {
 
   const errPlans = document.getElementById("err-s2-plans");
   if (errPlans) errPlans.textContent = "";
-  const cleanedPlans = submitPricingPlans.filter(pl => (pl.planName || "").trim() && (pl.price || "").trim());
-  if (!cleanedPlans.length) {
-    if (errPlans) errPlans.textContent = "Please fill Plan Name and Price for at least 1 plan.";
+  const hasInvalidPrice = submitPricingPlans.some(pl => {
+    const pStr = sanitizeNumericPrice(pl.price);
+    return (pl.planName || "").trim() && (pStr === "" || isNaN(Number(pStr)));
+  });
+  const cleanedPlans = submitPricingPlans.filter(pl => (pl.planName || "").trim() && sanitizeNumericPrice(pl.price) !== "" && !isNaN(Number(sanitizeNumericPrice(pl.price))));
+  if (hasInvalidPrice || !cleanedPlans.length) {
+    if (errPlans) errPlans.textContent = "Har plan mein Plan Name aur valid numeric Price (e.g. 0, 20, 199) dalein.";
     ok = false;
   }
 
@@ -1771,7 +1865,9 @@ function syncStep3And4Previews() {
   const bestFor = (document.getElementById("s2BestFor")?.value || "").trim() || "Creators & teams";
   const pricing = (document.getElementById("s2Pricing")?.value || "").trim() || "Free & Premium";
   const manualPriceLabel = (document.getElementById("s2PriceLabel")?.value || "").trim();
-  const validPlans = submitPricingPlans.filter(pl => (pl.planName || "").trim() || (pl.price || "").trim());
+  const validPlans = submitPricingPlans
+    .filter(pl => (pl.planName || "").trim() && sanitizeNumericPrice(pl.price) !== "")
+    .map(pl => ({ ...pl, formattedPrice: formatPlanDisplayPrice(pl) }));
   const priceLabel = buildCombinedPriceLabel(validPlans, pricing, manualPriceLabel);
   const developer = (document.getElementById("s3Developer")?.value || "").trim() || "Community Creator";
   const finalLogo = uploadedLogoDataUrl || (document.getElementById("s1LogoUrl")?.value || "").trim();
@@ -1834,7 +1930,7 @@ function syncStep3And4Previews() {
             ${validPlans.map(pl => `
               <div class="review-plan-chip">
                 <strong>${escapeHTML(pl.planName)}</strong>
-                <span>${escapeHTML(pl.price)} <small class="muted">(${escapeHTML(pl.cycle)})</small></span>
+                <span>${escapeHTML(pl.formattedPrice || formatPlanDisplayPrice(pl))} <small class="muted">(${escapeHTML(pl.cycle)})</small></span>
               </div>
             `).join("")}
           </div>
@@ -1993,11 +2089,13 @@ function handleFourStepFinalSubmit(e) {
   const bestFor = (document.getElementById("s2BestFor").value || "").trim() || `Creators & ${submitSelectedType} users`;
   const pricing = document.getElementById("s2Pricing").value.trim();
   const cleanedPlans = submitPricingPlans
-    .filter(pl => (pl.planName || "").trim() && (pl.price || "").trim())
+    .filter(pl => (pl.planName || "").trim() && sanitizeNumericPrice(pl.price) !== "" && !isNaN(Number(sanitizeNumericPrice(pl.price))))
     .slice(0, 6)
     .map(pl => ({
       planName: pl.planName.trim(),
-      price: pl.price.trim(),
+      price: formatPlanDisplayPrice(pl),
+      rawAmount: Number(sanitizeNumericPrice(pl.price)),
+      currency: pl.currency || "$",
       cycle: pl.cycle || "Monthly"
     }));
   const priceLabel = buildCombinedPriceLabel(cleanedPlans, pricing, document.getElementById("s2PriceLabel").value);
@@ -2038,7 +2136,7 @@ function handleFourStepFinalSubmit(e) {
   uploadedLogoDataUrl = "";
   uploadedGalleryImages = [];
   submitFeaturesList = ["AI-Powered", "Easy to Use", "Fast Performance"];
-  submitPricingPlans = [{ planName: "Free Plan", price: "Free ($0)", cycle: "Free" }];
+  submitPricingPlans = [{ planName: "Free Plan", currency: "$", price: "0", cycle: "Free" }];
   submitSelectedType = "SaaS";
   document.querySelectorAll("#s1TypePills .type-pill").forEach((b, i) => b.classList.toggle("active", i === 0));
   document.getElementById("s1LogoPreviewImg")?.classList.add("hidden");

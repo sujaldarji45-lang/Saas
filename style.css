@@ -3080,3 +3080,18 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+
+.numeric-price-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.currency-mini-select {
+  width: 58px !important;
+  padding-left: 6px;
+  padding-right: 4px;
+  flex-shrink: 0;
+  font-weight: 700;
+}
