@@ -329,21 +329,38 @@
                   </div>
                 </div>
 
-                <div class="form-row mt-12">
-                  <div>
-                    <label class="field-label">Pricing Model *</label>
-                    <select id="s2Pricing" class="input">
-                      <option value="">Select Pricing Model</option>
-                      <option value="Free">Free</option>
-                      <option value="Free & Premium">Free &amp; Premium</option>
-                      <option value="Premium">Premium</option>
-                      <option value="Paid">Paid</option>
-                    </select>
-                    <small class="error-msg" id="err-s2-pricing"></small>
+                <div class="mt-12">
+                  <div class="form-row">
+                    <div>
+                      <label class="field-label">Overall Pricing Model *</label>
+                      <select id="s2Pricing" class="input">
+                        <option value="">Select Pricing Model</option>
+                        <option value="Free">Free</option>
+                        <option value="Free & Premium">Free &amp; Premium</option>
+                        <option value="Premium">Premium</option>
+                        <option value="Paid">Paid</option>
+                      </select>
+                      <small class="error-msg" id="err-s2-pricing"></small>
+                    </div>
+                    <div>
+                      <label class="field-label">Summary Price Tag (Optional)</label>
+                      <input type="text" id="s2PriceLabel" class="input" placeholder="Auto-generated from plans or e.g. Free / $20 mo" />
+                    </div>
                   </div>
-                  <div>
-                    <label class="field-label">Starting Price (Optional)</label>
-                    <input type="text" id="s2PriceLabel" class="input" placeholder="e.g. Free, Free / $20 mo, $10 / mo" />
+
+                  <div class="pricing-plans-builder mt-12">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                      <div>
+                        <label class="field-label" style="margin-bottom:0;">Pricing Plans &amp; Tiers (Free, Monthly, Yearly, Enterprise — Max 6 Plans)</label>
+                        <small class="muted" style="font-size:0.76rem;">Add multiple plans like Gemini (e.g. Free Plan, Paid Monthly, Paid Yearly).</small>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="badge-pill" id="s2PlansCountBadge">1 / 6 Plans</span>
+                        <button type="button" class="btn btn-outline btn-sm" id="s2AddPlanBtn" onclick="addSubmitPricingPlan()">+ Add Another Plan</button>
+                      </div>
+                    </div>
+                    <div id="s2PricingPlansList" class="pricing-plans-rows"></div>
+                    <small class="error-msg" id="err-s2-plans"></small>
                   </div>
                 </div>
 

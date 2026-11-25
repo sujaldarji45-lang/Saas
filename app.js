@@ -1159,7 +1159,20 @@ function renderProductDetail(productId) {
               <span class="price-badge">${escapeHTML(p.pricing)}</span>
             </div>
             <div class="side-price-big">${escapeHTML(p.priceLabel)}</div>
-            <p class="muted" style="font-size:0.82rem; margin-top:4px;">Best suited for ${escapeHTML(p.bestFor)}.</p>
+            ${(p.pricingPlans && p.pricingPlans.length) ? `
+              <div class="detail-plans-list mt-12">
+                ${p.pricingPlans.map(pl => `
+                  <div class="detail-plan-item">
+                    <div>
+                      <strong>${escapeHTML(pl.planName)}</strong>
+                      <small class="muted" style="display:block; font-size:0.72rem;">${escapeHTML(pl.cycle)}</small>
+                    </div>
+                    <span class="price-badge">${escapeHTML(pl.price)}</span>
+                  </div>
+                `).join("")}
+              </div>
+            ` : ""}
+            <p class="muted" style="font-size:0.82rem; margin-top:8px;">Best suited for ${escapeHTML(p.bestFor)}.</p>
           </div>
         </aside>
       </div>
@@ -1451,6 +1464,9 @@ function runAiAdviser(promptText) {
 let currentSubmitStep = 1;
 let submitSelectedType = "SaaS";
 let submitFeaturesList = ["AI-Powered", "Easy to Use", "Fast Performance"];
+let submitPricingPlans = [
+  { planName: "Free Plan", price: "Free ($0)", cycle: "Free" }
+];
 
 function openSubmitModal() {
   initFourStepSubmitView(true);
@@ -1461,7 +1477,96 @@ function initFourStepSubmitView(resetStep = false) {
   if (resetStep) currentSubmitStep = 1;
   renderSubmitStepUI();
   renderSubmitFeaturesChips();
+  renderSubmitPricingPlans();
   syncStep3And4Previews();
+}
+
+function renderSubmitPricingPlans() {
+  const listEl = document.getElementById("s2PricingPlansList");
+  const badgeEl = document.getElementById("s2PlansCountBadge");
+  const addBtn = document.getElementById("s2AddPlanBtn");
+  if (badgeEl) badgeEl.textContent = `${submitPricingPlans.length} / 6 Plans`;
+  if (addBtn) {
+    addBtn.disabled = submitPricingPlans.length >= 6;
+    addBtn.textContent = submitPricingPlans.length >= 6 ? "Max 6 Plans Reached" : "+ Add Another Plan";
+  }
+  if (!listEl) return;
+
+  listEl.innerHTML = submitPricingPlans.map((pl, idx) => `
+    <div class="pricing-plan-row-card">
+      <div class="plan-row-num">${idx + 1}</div>
+      <input
+        type="text"
+        class="input"
+        placeholder="Plan Name (e.g. Free Plan, Pro Monthly, Yearly)"
+        value="${escapeHTML(pl.planName)}"
+        oninput="updateSubmitPlanField(${idx}, 'planName', this.value)"
+      />
+      <input
+        type="text"
+        class="input"
+        placeholder="Price (e.g. $0, $20, ₹1,650)"
+        value="${escapeHTML(pl.price)}"
+        oninput="updateSubmitPlanField(${idx}, 'price', this.value)"
+      />
+      <select class="input" onchange="updateSubmitPlanField(${idx}, 'cycle', this.value)">
+        <option value="Free" ${pl.cycle === "Free" ? "selected" : ""}>Free</option>
+        <option value="Monthly" ${pl.cycle === "Monthly" ? "selected" : ""}>Monthly</option>
+        <option value="Yearly" ${pl.cycle === "Yearly" ? "selected" : ""}>Yearly</option>
+        <option value="One-time" ${pl.cycle === "One-time" ? "selected" : ""}>One-time</option>
+        <option value="Custom" ${pl.cycle === "Custom" ? "selected" : ""}>Custom</option>
+      </select>
+      ${submitPricingPlans.length > 1
+        ? `<button type="button" class="icon-btn" style="width:34px;height:34px;color:#EF4444;" onclick="removeSubmitPricingPlan(${idx})" title="Remove Plan">✕</button>`
+        : `<span style="width:34px;"></span>`}
+    </div>
+  `).join("");
+}
+
+function addSubmitPricingPlan() {
+  const errEl = document.getElementById("err-s2-plans");
+  if (errEl) errEl.textContent = "";
+  if (submitPricingPlans.length >= 6) {
+    if (errEl) errEl.textContent = "Maximum 6 pricing plans allowed.";
+    showToast("Maximum 6 pricing plans add kar sakte hain.");
+    return;
+  }
+  const presets = [
+    { planName: "Free Plan", price: "$0", cycle: "Free" },
+    { planName: "Pro Monthly", price: "$20", cycle: "Monthly" },
+    { planName: "Pro Yearly", price: "$199", cycle: "Yearly" },
+    { planName: "Team Plan", price: "$30 / user", cycle: "Monthly" },
+    { planName: "Business Yearly", price: "$290 / user", cycle: "Yearly" },
+    { planName: "Enterprise", price: "Custom", cycle: "Custom" }
+  ];
+  const nextPreset = presets[submitPricingPlans.length] || { planName: "", price: "", cycle: "Monthly" };
+  submitPricingPlans.push({ ...nextPreset });
+  renderSubmitPricingPlans();
+}
+
+function updateSubmitPlanField(idx, field, val) {
+  if (!submitPricingPlans[idx]) return;
+  submitPricingPlans[idx][field] = val;
+}
+
+function removeSubmitPricingPlan(idx) {
+  if (submitPricingPlans.length <= 1) return;
+  submitPricingPlans.splice(idx, 1);
+  renderSubmitPricingPlans();
+}
+
+function buildCombinedPriceLabel(plans, fallbackPricing, manualLabel) {
+  if (manualLabel && manualLabel.trim()) return manualLabel.trim();
+  const valid = (plans || []).filter(pl => (pl.planName || "").trim() || (pl.price || "").trim());
+  if (!valid.length) return fallbackPricing === "Free" ? "Free" : "Free / Paid";
+  return valid
+    .slice(0, 3)
+    .map(pl => {
+      const pr = (pl.price || pl.planName || "").trim();
+      const cyc = pl.cycle && pl.cycle !== "Free" && pl.cycle !== "Custom" ? `/${pl.cycle === "Monthly" ? "mo" : pl.cycle === "Yearly" ? "yr" : pl.cycle}` : "";
+      return `${pr}${cyc}`;
+    })
+    .join(" • ");
 }
 
 function jumpToSubmitStep(targetStep) {
@@ -1609,6 +1714,14 @@ function validateSubmitStep2() {
     ok = false;
   }
 
+  const errPlans = document.getElementById("err-s2-plans");
+  if (errPlans) errPlans.textContent = "";
+  const cleanedPlans = submitPricingPlans.filter(pl => (pl.planName || "").trim() && (pl.price || "").trim());
+  if (!cleanedPlans.length) {
+    if (errPlans) errPlans.textContent = "Please fill Plan Name and Price for at least 1 plan.";
+    ok = false;
+  }
+
   if (!ok) showToast("Please complete required fields in Step 2.");
   return ok;
 }
@@ -1657,7 +1770,9 @@ function syncStep3And4Previews() {
   const description = (document.getElementById("s2Description")?.value || "").trim() || "";
   const bestFor = (document.getElementById("s2BestFor")?.value || "").trim() || "Creators & teams";
   const pricing = (document.getElementById("s2Pricing")?.value || "").trim() || "Free & Premium";
-  const priceLabel = (document.getElementById("s2PriceLabel")?.value || "").trim() || (pricing === "Free" ? "Free" : "Free / Paid");
+  const manualPriceLabel = (document.getElementById("s2PriceLabel")?.value || "").trim();
+  const validPlans = submitPricingPlans.filter(pl => (pl.planName || "").trim() || (pl.price || "").trim());
+  const priceLabel = buildCombinedPriceLabel(validPlans, pricing, manualPriceLabel);
   const developer = (document.getElementById("s3Developer")?.value || "").trim() || "Community Creator";
   const finalLogo = uploadedLogoDataUrl || (document.getElementById("s1LogoUrl")?.value || "").trim();
 
@@ -1711,6 +1826,20 @@ function syncStep3And4Previews() {
       </div>
 
       <p class="muted" style="font-size:0.86rem; margin-top:12px;">${escapeHTML(description)}</p>
+
+      ${validPlans.length ? `
+        <div class="mt-12" style="padding-top:10px; border-top:1px solid #E2E8F0;">
+          <strong style="font-size:0.84rem;">Pricing Plans (${validPlans.length})</strong>
+          <div class="review-plans-strip mt-12">
+            ${validPlans.map(pl => `
+              <div class="review-plan-chip">
+                <strong>${escapeHTML(pl.planName)}</strong>
+                <span>${escapeHTML(pl.price)} <small class="muted">(${escapeHTML(pl.cycle)})</small></span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
 
       <div class="review-bottom-cols mt-12">
         <div>
@@ -1863,7 +1992,15 @@ function handleFourStepFinalSubmit(e) {
   const description = document.getElementById("s2Description").value.trim();
   const bestFor = (document.getElementById("s2BestFor").value || "").trim() || `Creators & ${submitSelectedType} users`;
   const pricing = document.getElementById("s2Pricing").value.trim();
-  const priceLabel = (document.getElementById("s2PriceLabel").value || "").trim() || (pricing === "Free" ? "Free" : "Free / Paid");
+  const cleanedPlans = submitPricingPlans
+    .filter(pl => (pl.planName || "").trim() && (pl.price || "").trim())
+    .slice(0, 6)
+    .map(pl => ({
+      planName: pl.planName.trim(),
+      price: pl.price.trim(),
+      cycle: pl.cycle || "Monthly"
+    }));
+  const priceLabel = buildCombinedPriceLabel(cleanedPlans, pricing, document.getElementById("s2PriceLabel").value);
   const developer = (document.getElementById("s3Developer").value || "").trim() || "Community Creator";
   const finalLogo = uploadedLogoDataUrl || (document.getElementById("s1LogoUrl")?.value || "").trim() || "";
   const colors = ["#2563EB", "#0284C7", "#059669", "#7C3AED", "#D97706", "#0F172A"];
@@ -1880,6 +2017,7 @@ function handleFourStepFinalSubmit(e) {
     category,
     pricing,
     priceLabel,
+    pricingPlans: cleanedPlans,
     rating: 5.0,
     isUserSubmitted: true,
     addedAt: nowStr,
@@ -1900,6 +2038,7 @@ function handleFourStepFinalSubmit(e) {
   uploadedLogoDataUrl = "";
   uploadedGalleryImages = [];
   submitFeaturesList = ["AI-Powered", "Easy to Use", "Fast Performance"];
+  submitPricingPlans = [{ planName: "Free Plan", price: "Free ($0)", cycle: "Free" }];
   submitSelectedType = "SaaS";
   document.querySelectorAll("#s1TypePills .type-pill").forEach((b, i) => b.classList.toggle("active", i === 0));
   document.getElementById("s1LogoPreviewImg")?.classList.add("hidden");
@@ -2196,6 +2335,7 @@ function handleVisitorProductSubmit(e) {
     category,
     pricing,
     priceLabel,
+    pricingPlans: cleanedPlans,
     rating: 5.0,
     isUserSubmitted: true,
     addedAt: nowStr,
