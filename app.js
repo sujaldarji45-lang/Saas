@@ -309,13 +309,55 @@ function saveProducts() {
 // =========================================================================
 // SHARED CLOUD CATALOG SYNC (FOR GITHUB PAGES MULTI-USER VISIBILITY)
 // =========================================================================
-// Note: GitHub Pages is static hosting; localStorage alone stays in one browser.
-// Below cloud endpoint syncs newly submitted tools across all visitors/devices!
-const CLOUD_CATALOG_ENDPOINT = "https://jsonblob.com/api/jsonBlob/019ab8d4-7f2a-7b3c-9e11-4c8d92a10f55";
+// GitHub Pages is static hosting; localStorage stays inside each user's browser.
+// This syncs newly added/removed tools across devices & visitors via JSONBlob API.
+const STORAGE_KEY_CLOUD_BLOB_URL = "techhub_cloud_blob_url_v1";
+let activeCloudBlobUrl = "";
+
+try {
+  activeCloudBlobUrl = localStorage.getItem(STORAGE_KEY_CLOUD_BLOB_URL) || "";
+} catch (e) {}
+
+function getLightweightCatalogPayload() {
+  const lightweightProducts = PRODUCTS.map(p => {
+    const copy = { ...p };
+    if (copy.logoUrl && copy.logoUrl.startsWith("data:") && copy.logoUrl.length > 65000) {
+      copy.logoUrl = "";
+    }
+    if (Array.isArray(copy.images)) {
+      copy.images = copy.images.filter(img => !img.startsWith("data:") || img.length <= 65000).slice(0, 2);
+    }
+    return copy;
+  });
+  return { updatedAt: Date.now(), products: lightweightProducts };
+}
+
+async function ensureCloudBlobUrl() {
+  if (activeCloudBlobUrl) return activeCloudBlobUrl;
+  try {
+    const res = await fetch("https://jsonblob.com/api/jsonBlob", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(getLightweightCatalogPayload())
+    });
+    const loc = res.headers.get("Location") || res.headers.get("X-JsonBlob");
+    if (loc) {
+      activeCloudBlobUrl = loc.startsWith("http") ? loc : `https://jsonblob.com/api/jsonBlob/${loc}`;
+      try {
+        localStorage.setItem(STORAGE_KEY_CLOUD_BLOB_URL, activeCloudBlobUrl);
+      } catch (e) {}
+    }
+  } catch (err) {}
+  return activeCloudBlobUrl;
+}
 
 async function syncProductsFromCloud() {
+  if (!activeCloudBlobUrl) return;
   try {
-    const res = await fetch(CLOUD_CATALOG_ENDPOINT, {
+    const res = await fetch(activeCloudBlobUrl, {
       method: "GET",
       headers: { "Accept": "application/json" },
       cache: "no-store"
@@ -331,31 +373,20 @@ async function syncProductsFromCloud() {
       const r = getInitialRoute();
       if (r === "detail") renderProductDetail(selectedDetailId);
     }
-  } catch (err) {
-    // Offline or blocked CORS: continue smoothly with localStorage + DEFAULT_PRODUCTS
-  }
+  } catch (err) {}
 }
 
 async function pushProductsToCloud() {
   try {
-    // Strip heavy base64 screenshots if payload > 450KB so cloud sync always succeeds
-    const lightweightProducts = PRODUCTS.map(p => {
-      const copy = { ...p };
-      if (copy.logoUrl && copy.logoUrl.startsWith("data:") && copy.logoUrl.length > 90000) {
-        copy.logoUrl = "";
-      }
-      if (Array.isArray(copy.images)) {
-        copy.images = copy.images.filter(img => !img.startsWith("data:") || img.length <= 90000).slice(0, 3);
-      }
-      return copy;
-    });
-    await fetch(CLOUD_CATALOG_ENDPOINT, {
+    const url = await ensureCloudBlobUrl();
+    if (!url) return;
+    await fetch(url, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      body: JSON.stringify({ updatedAt: Date.now(), products: lightweightProducts })
+      body: JSON.stringify(getLightweightCatalogPayload())
     });
   } catch (err) {}
 }
