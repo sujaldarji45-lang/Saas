@@ -351,6 +351,12 @@ function sanitizeSingleProductForCloud(p) {
 
 const STORAGE_KEY_DELETED_IDS = "techhub_deleted_ids_v1";
 
+function getFirebaseDeletedIdsEndpoint() {
+  const base = (FIREBASE_DB_URL || "").trim().replace(/\/+$/, "");
+  if (!base) return "";
+  return `${base}/deletedIds.json`;
+}
+
 function getDeletedProductIds() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_DELETED_IDS);
@@ -368,33 +374,69 @@ function addDeletedProductId(productId) {
   try {
     localStorage.setItem(STORAGE_KEY_DELETED_IDS, JSON.stringify([...set]));
   } catch (e) {}
+  const delEndpoint = getFirebaseDeletedIdsEndpoint();
+  if (delEndpoint) {
+    fetch(`${baseSafe()}/deletedIds/${encodeURIComponent(productId)}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(true)
+    }).catch(() => {});
+  }
+}
+
+function baseSafe() {
+  return (FIREBASE_DB_URL || "").trim().replace(/\/+$/, "");
 }
 
 async function syncProductsFromCloud() {
   const subEndpoint = getFirebaseSubmissionsEndpoint();
   if (!subEndpoint) return;
   try {
-    const res = await fetch(subEndpoint, { cache: "no-store" });
+    const [res, delRes] = await Promise.all([
+      fetch(subEndpoint, { cache: "no-store" }),
+      getFirebaseDeletedIdsEndpoint()
+        ? fetch(getFirebaseDeletedIdsEndpoint(), { cache: "no-store" }).catch(() => null)
+        : Promise.resolve(null)
+    ]);
     if (!res.ok) return;
     const rawSubs = await res.json();
-    if (!rawSubs || typeof rawSubs !== "object") return;
 
-    const deletedSet = getDeletedProductIds();
-    const cloudTools = Object.values(rawSubs).filter(
-      item => item && typeof item === "object" && item.name && item.id && !deletedSet.has(item.id)
-    );
-    if (!cloudTools.length) return;
+    const cloudDeletedSet = new Set();
+    if (delRes && delRes.ok) {
+      const rawDel = await delRes.json().catch(() => null);
+      if (rawDel && typeof rawDel === "object") {
+        Object.entries(rawDel).forEach(([k, v]) => {
+          if (v) cloudDeletedSet.add(k);
+        });
+      }
+    }
 
-    const existingIds = new Set(PRODUCTS.map(p => p.id));
-    const merged = [...PRODUCTS];
-    cloudTools.forEach(tool => {
-      if (!existingIds.has(tool.id)) {
+    const activeCloudTools = (rawSubs && typeof rawSubs === "object")
+      ? Object.values(rawSubs).filter(
+          item => item && typeof item === "object" && item.name && item.id && !item.isDeleted && !cloudDeletedSet.has(item.id)
+        )
+      : [];
+
+    const activeCloudIds = new Set(activeCloudTools.map(t => t.id));
+    const localDeletedSet = getDeletedProductIds();
+    const allDeletedIds = new Set([...localDeletedSet, ...cloudDeletedSet]);
+
+    const baseProducts = PRODUCTS.filter(p => {
+      if (allDeletedIds.has(p.id)) return false;
+      if (p.isUserSubmitted && !activeCloudIds.has(p.id)) return false;
+      return true;
+    });
+
+    const existingIds = new Set(baseProducts.map(p => p.id));
+    const merged = [...baseProducts];
+    activeCloudTools.forEach(tool => {
+      if (!allDeletedIds.has(tool.id) && !existingIds.has(tool.id)) {
         merged.unshift(tool);
         existingIds.add(tool.id);
       }
     });
 
-    PRODUCTS = merged;
+    PRODUCTS = merged.length > 0 ? merged : [...DEFAULT_PRODUCTS];
     try {
       localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(PRODUCTS));
     } catch (e) {}
@@ -571,6 +613,13 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAdminPanel();
   }
   switchView(initialRoute, { scroll: false, syncHash: true });
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) syncProductsFromCloud();
+  });
+  window.addEventListener("focus", () => {
+    syncProductsFromCloud();
+  });
 
   window.addEventListener("hashchange", () => {
     const r = getInitialRoute();
