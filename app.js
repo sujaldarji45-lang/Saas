@@ -260,11 +260,11 @@ const DEFAULT_PRODUCTS = [
   }
 ];
 
-const STORAGE_KEY_PRODUCTS = "techhub_real_products_v3";
-const STORAGE_KEY_FAVS = "techhub_real_favs_v3";
-const STORAGE_KEY_ADMIN_SESSION = "techhub_admin_session_v3";
-const STORAGE_KEY_ACTIVE_ROUTE = "techhub_active_route_v1";
-const STORAGE_KEY_ACTIVE_DETAIL = "techhub_active_detail_v1";
+const STORAGE_KEY_PRODUCTS = "toolspace_real_products_v3";
+const STORAGE_KEY_FAVS = "toolspace_real_favs_v3";
+const STORAGE_KEY_ADMIN_SESSION = "toolspace_admin_session_v3";
+const STORAGE_KEY_ACTIVE_ROUTE = "toolspace_active_route_v1";
+const STORAGE_KEY_ACTIVE_DETAIL = "toolspace_active_detail_v1";
 
 let PRODUCTS = loadProducts();
 let favoriteIds = loadFavorites();
@@ -349,7 +349,7 @@ function sanitizeSingleProductForCloud(p) {
   return copy;
 }
 
-const STORAGE_KEY_DELETED_IDS = "techhub_deleted_ids_v1";
+const STORAGE_KEY_DELETED_IDS = "toolspace_deleted_ids_v1";
 
 function getFirebaseDeletedIdsEndpoint() {
   const base = (FIREBASE_DB_URL || "").trim().replace(/\/+$/, "");
@@ -533,12 +533,16 @@ function getRealCategoryCounts() {
 }
 
 function renderLogoHTML(p, sizePx = 44, fontSize = "1.15rem") {
-  if (p.logoUrl) {
-    return `<div class="app-icon" style="width:${sizePx}px; height:${sizePx}px; background:#F8FAFC; border:1px solid #E2E8F0;">
-      <img src="${escapeHTML(p.logoUrl)}" alt="${escapeHTML(p.name)}" onerror="this.parentElement.innerHTML='${escapeHTML(p.letter)}'; this.parentElement.style.background='${p.color}';" />
+  const safeUrl = (p && typeof p.logoUrl === "string") ? p.logoUrl.trim() : "";
+  const safeLetter = escapeHTML((p && p.letter) ? p.letter : ((p && p.name && p.name[0]) ? p.name[0].toUpperCase() : "T"));
+  const safeColor = escapeHTML((p && p.color) ? p.color : "#FF6B00");
+  const safeName = escapeHTML((p && p.name) ? p.name : "Tool");
+  if (safeUrl && (safeUrl.startsWith("https://") || safeUrl.startsWith("http://") || safeUrl.startsWith("data:image/"))) {
+    return `<div class="app-icon" style="width:${sizePx}px; height:${sizePx}px; background:#FFFFFF; border:1px solid #E2E8F0;">
+      <img src="${escapeHTML(safeUrl)}" alt="${safeName}" style="width:100%; height:100%; object-fit:contain; padding:3px;" onerror="this.parentElement.innerHTML='${safeLetter}'; this.parentElement.style.background='${safeColor}'; this.parentElement.style.color='#FFFFFF';" />
     </div>`;
   }
-  return `<div class="app-icon" style="background:${p.color}; width:${sizePx}px; height:${sizePx}px; font-size:${fontSize};">${escapeHTML(p.letter)}</div>`;
+  return `<div class="app-icon" style="background:${safeColor}; width:${sizePx}px; height:${sizePx}px; font-size:${fontSize}; color:#FFFFFF;">${safeLetter}</div>`;
 }
 
 function escapeHTML(str) {
@@ -620,6 +624,9 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("focus", () => {
     syncProductsFromCloud();
   });
+  setInterval(() => {
+    if (!document.hidden) syncProductsFromCloud();
+  }, 15000);
 
   window.addEventListener("hashchange", () => {
     const r = getInitialRoute();
@@ -1352,10 +1359,10 @@ function renderProductDetail(productId) {
             </div>
           </div>
 
-          <!-- PRICING & PLAN -->
-          <div class="showcase-panel side-pricing-card">
+          <!-- PRICING & PLAN (CLICKABLE FOR ANIMATED PLANS POPUP) -->
+          <div class="showcase-panel side-pricing-card clickable-pricing-panel" role="button" tabindex="0" onclick="openToolPricingModal('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openToolPricingModal('${p.id}');}" title="Click to view all pricing plans">
             <div class="showcase-panel-head">
-              <h4>💎 Pricing & Plan</h4>
+              <h4>&#128142; Pricing &amp; Plan</h4>
               <span class="price-badge">${escapeHTML(p.pricing)}</span>
             </div>
             <div class="side-price-big">${escapeHTML(p.priceLabel)}</div>
@@ -1373,6 +1380,7 @@ function renderProductDetail(productId) {
               </div>
             ` : ""}
             <p class="muted" style="font-size:0.82rem; margin-top:8px;">Best suited for ${escapeHTML(p.bestFor)}.</p>
+            <span class="pricing-tap-hint">&#10024; Click to view plans with animation &#8250;</span>
           </div>
         </aside>
       </div>
@@ -1442,7 +1450,7 @@ function renderProductDetail(productId) {
               <p class="detail-banner-tagline">${escapeHTML(p.tagline)}</p>
               <div class="detail-badges-row">
                 <span class="badge-glass-amber">★ ${ratingInfo.scoreText} (${reviews.length} ${reviews.length === 1 ? "Review" : "Reviews"})</span>
-                <span class="badge-glass-emerald">${escapeHTML(p.priceLabel)}</span>
+                <button type="button" class="badge-glass-emerald" style="cursor:pointer;" onclick="openToolPricingModal('${p.id}')" title="Click to view all pricing plans">${escapeHTML(p.priceLabel)} &bull; View Plans &#8250;</button>
               </div>
             </div>
           </div>
@@ -1826,7 +1834,7 @@ function goSubmitStep(nextStep) {
 
 function renderSubmitStepUI() {
   const stepTitles = {
-    1: { title: "Submit Your Tool", sub: "List your SaaS, AI tool, or digital product on TechHub and reach a global audience.", badge: "Step 1 of 4<br><small>Basic Information</small>" },
+    1: { title: "Submit Your Tool", sub: "List your SaaS, AI tool, or digital product on ToolSpace and reach a global audience.", badge: "Step 1 of 4<br><small>Basic Information</small>" },
     2: { title: "Submit Your Tool", sub: "Share your amazing tool with our community and reach a global audience.", badge: "Step 2 of 4<br><small>Product Details</small>" },
     3: { title: "Submit Your Tool", sub: "Share your amazing tool with our community and reach a global audience.", badge: "Step 3 of 4<br><small>Media &amp; Links</small>" },
     4: { title: "Submit Your Tool", sub: "Share your amazing tool with our community and reach a global audience.", badge: "Step 4 of 4<br><small>Review &amp; Submit</small>" }
@@ -2289,7 +2297,7 @@ function handleFourStepFinalSubmit(e) {
   if (document.getElementById("s1LogoLabel")) document.getElementById("s1LogoLabel").textContent = "Upload Logo";
 
   refreshAllViews();
-  showToast(`🎉 "${name}" published live on TechHub!`);
+  showToast(`🎉 "${name}" published live on ToolSpace!`);
   openProductDetail(newProduct.id);
 }
 
@@ -2404,9 +2412,10 @@ function handleGalleryFilesChange(e) {
     }
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       if (uploadedGalleryImages.length < 5) {
-        uploadedGalleryImages.push(reader.result);
+        const compactImg = await compressImageDataUrl(reader.result, 720, 0.72);
+        uploadedGalleryImages.push(compactImg);
         renderGalleryUploadPreviews();
       }
     };
@@ -2649,7 +2658,7 @@ const BLOG_ARTICLES = [
     badge: "Featured Adviser Guide",
     title: "How to Choose Between ChatGPT, Claude, Gemini & Perplexity in 2026",
     excerpt: "A practical breakdown of where each AI assistant shines—from multi-file coding and deep document reasoning to live cited web research and Google Workspace.",
-    author: "TechHub Editorial",
+    author: "ToolSpace Editorial",
     date: "Nov 18, 2026",
     readTime: "5 min read",
     accentBg: "linear-gradient(135deg, #EEF2FF, #E0E7FF)",
@@ -2663,7 +2672,7 @@ const BLOG_ARTICLES = [
     takeaways: [
       "Start with free tiers first before committing to monthly Pro plans.",
       "Match the tool to your bottleneck: research, long context, or daily docs.",
-      "Use the Compare tab on TechHub to stack pricing and features side-by-side."
+      "Use the Compare tab on ToolSpace to stack pricing and features side-by-side."
     ]
   },
   {
@@ -2672,7 +2681,7 @@ const BLOG_ARTICLES = [
     badge: "Cost Optimization",
     title: "Maximizing Free & Freemium SaaS Tiers Before Paying Monthly",
     excerpt: "How solo founders, students, and small teams can run real projects on Free & Premium tools without paying for overlapping subscriptions.",
-    author: "TechHub Adviser Team",
+    author: "ToolSpace Adviser Team",
     date: "Nov 14, 2026",
     readTime: "4 min read",
     accentBg: "linear-gradient(135deg, #ECFDF5, #D1FAE5)",
@@ -2694,7 +2703,7 @@ const BLOG_ARTICLES = [
     badge: "Developer Stack",
     title: "Building Faster With AI Code Editors & Semantic Codebase Context",
     excerpt: "What separates modern AI-assisted coding editors from basic autocomplete, and how to keep generated code clean and maintainable.",
-    author: "Sujal • TechHub",
+    author: "Sujal • ToolSpace",
     date: "Nov 10, 2026",
     readTime: "6 min read",
     accentBg: "linear-gradient(135deg, #F0F9FF, #E0F2FE)",
@@ -2716,7 +2725,7 @@ const BLOG_ARTICLES = [
     badge: "Design & UI",
     title: "Smooth Design-to-Code Handoff: Wireframing to Clean UI Components",
     excerpt: "Practical tips for turning Figma layouts and Canva brand assets into responsive web interfaces without design drift.",
-    author: "TechHub Editorial",
+    author: "ToolSpace Editorial",
     date: "Nov 06, 2026",
     readTime: "4 min read",
     accentBg: "linear-gradient(135deg, #FFF1F2, #FFE4E6)",
@@ -2738,7 +2747,7 @@ const BLOG_ARTICLES = [
     badge: "Research & Writing",
     title: "Fact-Checking AI Drafts & Polishing Everyday Writing",
     excerpt: "Combine cited search engines with grammar and tone assistants so your docs, emails, and reports stay accurate and sharp.",
-    author: "TechHub Adviser Team",
+    author: "ToolSpace Adviser Team",
     date: "Nov 02, 2026",
     readTime: "4 min read",
     accentBg: "linear-gradient(135deg, #FFF7ED, #FFEDD5)",
@@ -2760,7 +2769,7 @@ const BLOG_ARTICLES = [
     badge: "Buyer Checklist",
     title: "A 5-Point Checklist Before Adding Any New SaaS Tool to Your Stack",
     excerpt: "Avoid tool bloat with a simple framework covering real use cases, pricing transparency, workflow fit, and alternatives.",
-    author: "TechHub Editorial",
+    author: "ToolSpace Editorial",
     date: "Oct 28, 2026",
     readTime: "5 min read",
     accentBg: "linear-gradient(135deg, #F5F3FF, #EDE9FE)",
@@ -2902,4 +2911,61 @@ function openBlogArticle(articleId) {
 
 function closeBlogReader() {
   document.getElementById("blogReaderModal")?.classList.add("hidden");
+}
+
+
+function openToolPricingModal(productId) {
+  const p = PRODUCTS.find(item => item.id === productId) || PRODUCTS.find(item => item.id === selectedDetailId) || PRODUCTS[0];
+  if (!p) return;
+
+  const modalEl = document.getElementById("pricingPlansModal");
+  const cardEl = modalEl?.querySelector(".pricing-showcase-modal");
+  const logoWrap = document.getElementById("pricingModalLogoWrap");
+  const badgeEl = document.getElementById("pricingModalBadge");
+  const titleEl = document.getElementById("pricingModalTitle");
+  const subEl = document.getElementById("pricingModalSub");
+  const listEl = document.getElementById("pricingModalPlansList");
+  const bestForEl = document.getElementById("pricingModalBestFor");
+  const visitLink = document.getElementById("pricingModalVisitLink");
+
+  const plans = (Array.isArray(p.pricingPlans) && p.pricingPlans.length)
+    ? p.pricingPlans
+    : [{
+        planName: p.pricing || "Standard Plan",
+        price: p.priceLabel || p.pricing || "Free",
+        cycle: p.pricing === "Free" ? "Free" : "Plan"
+      }];
+
+  if (logoWrap) logoWrap.innerHTML = renderLogoHTML(p, 46, "1.15rem");
+  if (badgeEl) badgeEl.textContent = `${plans.length} ${plans.length === 1 ? "Plan" : "Plans"} • ${p.pricing || "Pricing"}`;
+  if (titleEl) titleEl.textContent = `${p.name} — Pricing Plans`;
+  if (subEl) subEl.textContent = p.priceLabel ? `Summary: ${p.priceLabel}` : "Creator-configured plans & pricing";
+  if (bestForEl) bestForEl.textContent = `Best for: ${p.bestFor || "All users"}`;
+  if (visitLink) visitLink.href = p.website || "#";
+
+  if (listEl) {
+    listEl.innerHTML = "";
+    void listEl.offsetWidth;
+    listEl.innerHTML = plans.map((pl, idx) => `
+      <div class="animated-plan-card" style="animation-delay:${idx * 85}ms;">
+        <div>
+          <span class="plan-card-cycle">${escapeHTML(pl.cycle || "Plan")}</span>
+          <div class="plan-card-name" style="margin-top:8px;">${escapeHTML(pl.planName || "Plan")}</div>
+        </div>
+        <div class="plan-card-amount">${escapeHTML(pl.price || "Free")}</div>
+      </div>
+    `).join("");
+  }
+
+  if (cardEl) {
+    cardEl.style.animation = "none";
+    void cardEl.offsetWidth;
+    cardEl.style.animation = "";
+  }
+
+  modalEl?.classList.remove("hidden");
+}
+
+function closeToolPricingModal() {
+  document.getElementById("pricingPlansModal")?.classList.add("hidden");
 }

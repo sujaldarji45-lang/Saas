@@ -3095,3 +3095,335 @@ a {
   flex-shrink: 0;
   font-weight: 700;
 }
+
+
+:root {
+  --primary: #FF6B00;
+  --primary-dark: #E05A00;
+  --navy-deep: #0F172A;
+  --navy-mid: #1E293B;
+  --bg-page: #F8FAFC;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+}
+
+.toolspace-logo-box {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border-radius: 10px;
+}
+
+.brand-accent {
+  color: #FF6B00;
+}
+
+.badge-pill {
+  background: #FFF3E8;
+  color: #EA580C;
+}
+
+.btn-primary {
+  background: #FF6B00;
+  border-color: #FF6B00;
+  color: #FFFFFF;
+  border-radius: 10px;
+}
+
+.btn-primary:hover {
+  background: #E05A00;
+  border-color: #E05A00;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: #0F172A;
+  font-weight: 700;
+}
+
+.hero {
+  background: linear-gradient(115deg, #FFFFFF 0%, #F8FAFC 55%, #EFF6FF 100%);
+  color: #0F172A;
+  padding: 52px 0 58px;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.hero-eyebrow {
+  background: #FF6B00;
+  border: 1px solid #FF6B00;
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.hero h1 {
+  color: #0F172A;
+  font-size: 3.15rem;
+  letter-spacing: -0.025em;
+}
+
+.hero-accent-word {
+  color: #FF6B00;
+}
+
+.hero-subtitle {
+  color: #475569;
+}
+
+.hero-search-box {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+}
+
+.popular-searches {
+  color: #475569;
+  font-weight: 600;
+}
+
+.search-tag {
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid #E2E8F0;
+  font-weight: 600;
+}
+
+.search-tag:hover {
+  background: #FFF3E8;
+  border-color: #FF6B00;
+  color: #EA580C;
+}
+
+/* No box, no border, no card background around hero image */
+.hero-visual {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.toolspace-hero-clean {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.toolspace-laptop-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.category-strip-section {
+  margin-top: -22px;
+}
+
+.category-dock-shell {
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.cat-dock-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.cat-dock-card:hover {
+  border-color: #FF6B00;
+  box-shadow: 0 8px 20px rgba(255, 107, 0, 0.12);
+}
+
+.cat-dock-arrow {
+  color: #64748B;
+}
+
+.cat-dock-card:hover .cat-dock-arrow {
+  color: #FF6B00;
+}
+
+.link-arrow,
+.text-btn {
+  color: #FF6B00;
+}
+
+.link-arrow:hover,
+.text-btn:hover {
+  color: #E05A00;
+}
+
+.product-card {
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+}
+
+.product-card::before {
+  background: linear-gradient(90deg, #FF6B00, #F59E0B, #2563EB);
+}
+
+.tag-pill {
+  background: #FFF3E8;
+  color: #EA580C;
+}
+
+.community-card {
+  background: linear-gradient(180deg, #FFF7ED 0%, #FFEDD5 100%);
+  border: 1px dashed #FB923C;
+}
+
+.community-icon {
+  background: #FF6B00;
+}
+
+.detail-tab-pill.active {
+  background: linear-gradient(135deg, #FF6B00 0%, #EA580C 100%);
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.28);
+}
+
+.stepper-item.active {
+  color: #FF6B00;
+}
+
+.stepper-item.active .stepper-circle {
+  background: #FF6B00;
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.32);
+}
+
+
+/* =========================================================================
+   CLICKABLE PRICING CARD & STAGGERED ANIMATED PLANS SHOWCASE
+   ========================================================================= */
+.clickable-pricing-panel {
+  cursor: pointer;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.clickable-pricing-panel:hover {
+  transform: translateY(-3px);
+  border-color: #FF6B00;
+  box-shadow: 0 14px 30px rgba(255, 107, 0, 0.14);
+}
+
+.pricing-tap-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #FF6B00;
+  background: #FFF3E8;
+  border: 1px solid #FED7AA;
+  padding: 4px 10px;
+  border-radius: 999px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.clickable-pricing-panel:hover .pricing-tap-hint {
+  background: #FF6B00;
+  color: #FFFFFF;
+  transform: translateX(2px);
+}
+
+.pricing-showcase-modal {
+  max-width: 660px;
+  animation: pricingModalPop 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pricingModalPop {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animated-plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.animated-plan-card {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+  border: 1px solid #E2E8F0;
+  border-top: 4px solid #FF6B00;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(14px) scale(0.97);
+  animation: planCardReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.animated-plan-card:hover {
+  transform: translateY(-4px);
+  border-color: #FF6B00;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
+}
+
+@keyframes planCardReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.plan-card-cycle {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #EA580C;
+  background: #FFF3E8;
+  padding: 3px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.plan-card-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.plan-card-amount {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #059669;
+  line-height: 1.2;
+}
+
+.pricing-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #E2E8F0;
+}
