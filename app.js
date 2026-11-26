@@ -276,6 +276,8 @@ let uploadedGalleryImages = [];
 let lightboxImagesList = [];
 let lightboxCurrentIdx = 0;
 
+
+
 function loadProducts() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PRODUCTS);
@@ -307,35 +309,43 @@ function saveProducts() {
 // =========================================================================
 // SHARED CLOUD CATALOG SYNC VIA FIREBASE REALTIME DATABASE (ALL VISITORS)
 // =========================================================================
+// Apna Firebase Realtime Database URL yahan daalein (trailing slash ke bina):
+// Example: const FIREBASE_DB_URL = "https://techhub-12345-default-rtdb.firebaseio.com";
 const FIREBASE_DB_URL = "https://online-tool-provide-default-rtdb.firebaseio.com";
 
-function compressImageDataUrl(dataUrl, maxDim = 160, quality = 0.78) {
+
+function compressImageDataUrl(dataUrl, maxDim = 220, quality = 0.82) {
   return new Promise((resolve) => {
     if (!dataUrl || typeof dataUrl !== "string") {
-      resolve(dataUrl || "");
+      resolve("");
       return;
     }
-    if (!dataUrl.startsWith("data:image/")) {
-      resolve(dataUrl);
+    const trimmed = dataUrl.trim();
+    if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) {
+      resolve(trimmed);
       return;
     }
-    if (dataUrl.startsWith("data:image/svg+xml")) {
-      resolve(dataUrl.length <= 75000 ? dataUrl : "");
+    if (!trimmed.startsWith("data:image/")) {
+      resolve("");
+      return;
+    }
+    if (trimmed.startsWith("data:image/svg+xml")) {
+      resolve(trimmed);
       return;
     }
     const img = new Image();
     img.onload = () => {
       try {
-        let width = img.width || maxDim;
-        let height = img.height || maxDim;
+        let width = img.naturalWidth || img.width || maxDim;
+        let height = img.naturalHeight || img.height || maxDim;
         if (width > height) {
           if (width > maxDim) {
-            height = Math.round((height * maxDim) / width);
+            height = Math.max(1, Math.round((height * maxDim) / width));
             width = maxDim;
           }
         } else {
           if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
+            width = Math.max(1, Math.round((width * maxDim) / height));
             height = maxDim;
           }
         }
@@ -344,21 +354,21 @@ function compressImageDataUrl(dataUrl, maxDim = 160, quality = 0.78) {
         canvas.height = Math.max(1, height);
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          resolve(dataUrl);
+          resolve(trimmed);
           return;
         }
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        let out = canvas.toDataURL("image/webp", quality);
-        if (!out || out.length < 30 || out === "data:,") {
-          out = canvas.toDataURL("image/jpeg", quality);
+        let out = canvas.toDataURL("image/jpeg", quality);
+        if (!out || out.length < 40 || out === "data:,") {
+          out = canvas.toDataURL("image/png");
         }
-        resolve(out && out.length < dataUrl.length ? out : dataUrl);
+        resolve((out && out.length >= 40 && out !== "data:,") ? out : trimmed);
       } catch (e) {
-        resolve(dataUrl);
+        resolve(trimmed);
       }
     };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
+    img.onerror = () => resolve(trimmed);
+    img.src = trimmed;
   });
 }
 
@@ -441,14 +451,19 @@ async function syncProductsFromCloud() {
   const subEndpoint = getFirebaseSubmissionsEndpoint();
   if (!subEndpoint) return;
   try {
-    const [res, delRes] = await Promise.all([
+    const base = baseSafe();
+    const [res, delRes, logosRes] = await Promise.all([
       fetch(subEndpoint, { cache: "no-store" }),
       getFirebaseDeletedIdsEndpoint()
         ? fetch(getFirebaseDeletedIdsEndpoint(), { cache: "no-store" }).catch(() => null)
+        : Promise.resolve(null),
+      base
+        ? fetch(`${base}/toolLogos.json`, { cache: "no-store" }).catch(() => null)
         : Promise.resolve(null)
     ]);
     if (!res.ok) return;
     const rawSubs = await res.json();
+    const rawLogos = (logosRes && logosRes.ok) ? await logosRes.json().catch(() => null) : null;
 
     const cloudDeletedSet = new Set();
     if (delRes && delRes.ok) {
@@ -479,9 +494,19 @@ async function syncProductsFromCloud() {
     const existingIds = new Set(baseProducts.map(p => p.id));
     const merged = [...baseProducts];
     activeCloudTools.forEach(tool => {
+      const backupLogo = (rawLogos && typeof rawLogos === "object") ? rawLogos[tool.id] : "";
+      if (!tool.logoUrl && typeof backupLogo === "string" && backupLogo.trim()) {
+        tool.logoUrl = backupLogo.trim();
+      }
       if (!allDeletedIds.has(tool.id) && !existingIds.has(tool.id)) {
         merged.unshift(tool);
         existingIds.add(tool.id);
+      }
+    });
+    merged.forEach(item => {
+      const backupLogo = (rawLogos && typeof rawLogos === "object") ? rawLogos[item.id] : "";
+      if (!item.logoUrl && typeof backupLogo === "string" && backupLogo.trim()) {
+        item.logoUrl = backupLogo.trim();
       }
     });
 
@@ -497,12 +522,21 @@ async function syncProductsFromCloud() {
 
 async function pushNewToolToCloud(newProduct) {
   const subEndpoint = getFirebaseSubmissionsEndpoint();
+  const base = baseSafe();
   if (!subEndpoint || !newProduct) return false;
   try {
+    const payload = sanitizeSingleProductForCloud(newProduct);
+    if (base && payload.id && payload.logoUrl && payload.logoUrl.length <= 150000) {
+      await fetch(`${base}/toolLogos/${encodeURIComponent(payload.id)}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload.logoUrl)
+      }).catch(() => { });
+    }
     const res = await fetch(subEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(sanitizeSingleProductForCloud(newProduct))
+      body: JSON.stringify(payload)
     });
     return Boolean(res && res.ok);
   } catch (err) {
@@ -743,6 +777,7 @@ function updateAdminHeaderUI() {
 // NAVIGATION ROUTER
 function switchView(routeName, opts = {}) {
   const { scroll = true, syncHash = true } = opts;
+  // Guard Admin View
   if (routeName === "admin" && !getAdminSession()) {
     openAdminAuthModal();
     return;
@@ -813,6 +848,7 @@ function setupAdminAuthModal() {
 
   document.getElementById("closeAdminModalBtn").addEventListener("click", closeAdminAuthModal);
 
+  // Admin Email ID + Password Login
   document.getElementById("adminLoginForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const emailInput = document.getElementById("adminEmailInput");
@@ -850,6 +886,7 @@ function setupAdminAuthModal() {
     showToast("✅ Admin Login Successful!");
   });
 
+  // Admin Logout & Direct Add
   document.getElementById("adminLogoutBtn").addEventListener("click", () => {
     clearAdminSession();
     switchView("home");
@@ -935,6 +972,7 @@ function confirmAdminDelete(productId) {
   }
 }
 
+
 function openAdminAuthModal() {
   document.getElementById("adminLoginForm").reset();
   document.getElementById("err-admin-email").textContent = "";
@@ -964,6 +1002,7 @@ function renderAdminPanel() {
   document.getElementById("adminTotalCatalogCount").textContent = PRODUCTS.length;
   document.getElementById("adminCategoryCount").textContent = realCats.length;
 
+  // Visitor Published Tools Table
   const visitorWrap = document.getElementById("adminVisitorTableWrap");
   if (!visitorTools.length) {
     visitorWrap.innerHTML = `<p class="muted" style="padding:12px 0;">Abhi tak kisi visitor ne koi naya tool publish nahi kiya hai. Jab koi visitor "+ Submit Your Tool" se publish karega, uski poori details yahan dikhengi.</p>`;
@@ -1014,6 +1053,7 @@ function renderAdminPanel() {
     `;
   }
 
+  // Populate Category Filter Dropdown in All Live Tools Manager
   const catSelect = document.getElementById("adminLiveCategoryFilter");
   const currentCatVal = catSelect.value || "ALL";
   catSelect.innerHTML = `<option value="ALL">All Categories (${PRODUCTS.length})</option>` +
@@ -1129,6 +1169,7 @@ function createProductCardHTML(p) {
   `;
 }
 
+// CLEAN SAVED TOOLS VIEW (ONLY USER'S SAVED FAVORITES — NO VISITOR SUBMISSIONS SHOWN HERE)
 function renderSavedToolsView() {
   const favProducts = PRODUCTS.filter(p => favoriteIds.includes(p.id));
   document.getElementById("kpiFavorites").textContent = favProducts.length;
@@ -1300,7 +1341,9 @@ function renderProductDetail(productId) {
 
     tabContent = `
       <div class="showcase-main-grid">
+        <!-- LEFT MAIN COLUMN -->
         <div class="showcase-left-col">
+          <!-- ABOUT CARD -->
           <div class="showcase-panel">
             <div class="showcase-panel-head">
               <h3>✨ About ${escapeHTML(p.name)}</h3>
@@ -1317,6 +1360,7 @@ function renderProductDetail(productId) {
             </div>
           </div>
 
+          <!-- KEY FEATURES CARD -->
           <div class="showcase-panel">
             <div class="showcase-panel-head">
               <h3>⚡ Key Features</h3>
@@ -1332,6 +1376,7 @@ function renderProductDetail(productId) {
             </div>
           </div>
 
+          <!-- BOTTOM 2-COLUMN: WHAT USERS SAY + SIMILAR TOOLS / ALTERNATIVES -->
           <div class="showcase-bottom-split">
             <div class="showcase-panel">
               <div class="showcase-panel-head">
@@ -1350,6 +1395,7 @@ function renderProductDetail(productId) {
             </div>
           </div>
 
+          <!-- IMAGES ABOUT TOOL (UP TO 5 VISITOR IMAGES, CLICK TO VIEW FULL) -->
           <div class="showcase-panel" id="toolImagesAboutSection">
             <div class="showcase-panel-head">
               <h3>🖼️ Images About ${escapeHTML(p.name)}</h3>
@@ -1372,7 +1418,9 @@ function renderProductDetail(productId) {
           </div>
         </div>
 
+        <!-- RIGHT SIDEBAR COLUMN -->
         <aside class="showcase-right-col">
+          <!-- QUICK INFO -->
           <div class="showcase-panel side-quickinfo-card">
             <div class="showcase-panel-head">
               <h4>📌 Quick Info</h4>
@@ -1397,6 +1445,7 @@ function renderProductDetail(productId) {
             </div>
           </div>
 
+          <!-- PRICING & PLAN (CLICKABLE FOR ANIMATED PLANS POPUP) -->
           <div class="showcase-panel side-pricing-card clickable-pricing-panel" role="button" tabindex="0" onclick="openToolPricingModal('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openToolPricingModal('${p.id}');}" title="Click to view all pricing plans">
             <div class="showcase-panel-head">
               <h4>&#128142; Pricing &amp; Plan</h4>
@@ -2061,6 +2110,7 @@ function syncStep3And4Previews() {
   const developer = (document.getElementById("s3Developer")?.value || "").trim() || "Community Creator";
   const finalLogo = uploadedLogoDataUrl || (document.getElementById("s1LogoUrl")?.value || "").trim();
 
+  // Step 3 preview sync
   const s3Thumb = document.getElementById("s3LogoThumbWrap");
   const s3Status = document.getElementById("s3LogoStatusText");
   if (s3Thumb) {
@@ -2082,6 +2132,7 @@ function syncStep3And4Previews() {
     `).join("") || `<small class="muted">No extra images added yet (up to 5 allowed).</small>`;
   }
 
+  // Step 4 review card sync
   const revBox = document.getElementById("submitReviewSummaryBox");
   if (revBox) {
     const logoHtml = finalLogo
@@ -2682,6 +2733,7 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove("show"), 2800);
 }
 
+
 // =========================================================================
 // 6. SAAS ADVISER BLOG SECTION
 // =========================================================================
@@ -2946,6 +2998,7 @@ function openBlogArticle(articleId) {
 function closeBlogReader() {
   document.getElementById("blogReaderModal")?.classList.add("hidden");
 }
+
 
 function openToolPricingModal(productId) {
   const p = PRODUCTS.find(item => item.id === productId) || PRODUCTS.find(item => item.id === selectedDetailId) || PRODUCTS[0];
