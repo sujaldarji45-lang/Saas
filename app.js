@@ -276,8 +276,6 @@ let uploadedGalleryImages = [];
 let lightboxImagesList = [];
 let lightboxCurrentIdx = 0;
 
-
-
 function loadProducts() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PRODUCTS);
@@ -293,7 +291,7 @@ function loadProducts() {
         });
       }
     }
-  } catch (e) {}
+  } catch (e) { }
   return [...DEFAULT_PRODUCTS];
 }
 
@@ -309,9 +307,60 @@ function saveProducts() {
 // =========================================================================
 // SHARED CLOUD CATALOG SYNC VIA FIREBASE REALTIME DATABASE (ALL VISITORS)
 // =========================================================================
-// Apna Firebase Realtime Database URL yahan daalein (trailing slash ke bina):
-// Example: const FIREBASE_DB_URL = "https://techhub-12345-default-rtdb.firebaseio.com";
 const FIREBASE_DB_URL = "https://online-tool-provide-default-rtdb.firebaseio.com";
+
+function compressImageDataUrl(dataUrl, maxDim = 160, quality = 0.78) {
+  return new Promise((resolve) => {
+    if (!dataUrl || typeof dataUrl !== "string") {
+      resolve(dataUrl || "");
+      return;
+    }
+    if (!dataUrl.startsWith("data:image/")) {
+      resolve(dataUrl);
+      return;
+    }
+    if (dataUrl.startsWith("data:image/svg+xml")) {
+      resolve(dataUrl.length <= 75000 ? dataUrl : "");
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      try {
+        let width = img.width || maxDim;
+        let height = img.height || maxDim;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, width);
+        canvas.height = Math.max(1, height);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(dataUrl);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        let out = canvas.toDataURL("image/webp", quality);
+        if (!out || out.length < 30 || out === "data:,") {
+          out = canvas.toDataURL("image/jpeg", quality);
+        }
+        resolve(out && out.length < dataUrl.length ? out : dataUrl);
+      } catch (e) {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
 
 function getFirebaseProductsEndpoint() {
   const base = (FIREBASE_DB_URL || "").trim().replace(/\/+$/, "");
@@ -322,11 +371,11 @@ function getFirebaseProductsEndpoint() {
 function getFirebasePayloadProducts() {
   return PRODUCTS.map(p => {
     const copy = { ...p };
-    if (copy.logoUrl && copy.logoUrl.startsWith("data:") && copy.logoUrl.length > 80000) {
+    if (copy.logoUrl && copy.logoUrl.startsWith("data:") && copy.logoUrl.length > 220000) {
       copy.logoUrl = "";
     }
     if (Array.isArray(copy.images)) {
-      copy.images = copy.images.filter(img => !img.startsWith("data:") || img.length <= 80000).slice(0, 2);
+      copy.images = copy.images.filter(img => !img.startsWith("data:") || img.length <= 220000).slice(0, 2);
     }
     return copy;
   });
@@ -340,11 +389,11 @@ function getFirebaseSubmissionsEndpoint() {
 
 function sanitizeSingleProductForCloud(p) {
   const copy = { ...p };
-  if (copy.logoUrl && copy.logoUrl.startsWith("data:") && copy.logoUrl.length > 80000) {
+  if (copy.logoUrl && copy.logoUrl.startsWith("data:") && copy.logoUrl.length > 220000) {
     copy.logoUrl = "";
   }
   if (Array.isArray(copy.images)) {
-    copy.images = copy.images.filter(img => !img.startsWith("data:") || img.length <= 80000).slice(0, 2);
+    copy.images = copy.images.filter(img => !img.startsWith("data:") || img.length <= 220000).slice(0, 2);
   }
   return copy;
 }
@@ -373,14 +422,14 @@ function addDeletedProductId(productId) {
   set.add(productId);
   try {
     localStorage.setItem(STORAGE_KEY_DELETED_IDS, JSON.stringify([...set]));
-  } catch (e) {}
+  } catch (e) { }
   const delEndpoint = getFirebaseDeletedIdsEndpoint();
   if (delEndpoint) {
     fetch(`${baseSafe()}/deletedIds/${encodeURIComponent(productId)}.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(true)
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 
@@ -413,8 +462,8 @@ async function syncProductsFromCloud() {
 
     const activeCloudTools = (rawSubs && typeof rawSubs === "object")
       ? Object.values(rawSubs).filter(
-          item => item && typeof item === "object" && item.name && item.id && !item.isDeleted && !cloudDeletedSet.has(item.id)
-        )
+        item => item && typeof item === "object" && item.name && item.id && !item.isDeleted && !cloudDeletedSet.has(item.id)
+      )
       : [];
 
     const activeCloudIds = new Set(activeCloudTools.map(t => t.id));
@@ -439,23 +488,26 @@ async function syncProductsFromCloud() {
     PRODUCTS = merged.length > 0 ? merged : [...DEFAULT_PRODUCTS];
     try {
       localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(PRODUCTS));
-    } catch (e) {}
+    } catch (e) { }
     refreshAllViews();
     const r = getInitialRoute();
     if (r === "detail") renderProductDetail(selectedDetailId);
-  } catch (err) {}
+  } catch (err) { }
 }
 
 async function pushNewToolToCloud(newProduct) {
   const subEndpoint = getFirebaseSubmissionsEndpoint();
-  if (!subEndpoint || !newProduct) return;
+  if (!subEndpoint || !newProduct) return false;
   try {
-    await fetch(subEndpoint, {
+    const res = await fetch(subEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(sanitizeSingleProductForCloud(newProduct))
     });
-  } catch (err) {}
+    return Boolean(res && res.ok);
+  } catch (err) {
+    return false;
+  }
 }
 
 async function deleteToolFromCloud(productId, productName = "") {
@@ -493,7 +545,7 @@ function loadFavorites() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_FAVS);
     if (raw) return JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) { }
   return [];
 }
 
@@ -563,7 +615,7 @@ function loadPersistedDetailId() {
     }
     const saved = localStorage.getItem(STORAGE_KEY_ACTIVE_DETAIL);
     if (saved && PRODUCTS.some(p => p.id === saved)) return saved;
-  } catch (e) {}
+  } catch (e) { }
   return PRODUCTS[0]?.id || "chatgpt";
 }
 
@@ -585,7 +637,7 @@ function getInitialRoute() {
       if (hash === "admin" && !getAdminSession()) return "home";
       return hash;
     }
-  } catch (e) {}
+  } catch (e) { }
   return "home";
 }
 
@@ -691,7 +743,6 @@ function updateAdminHeaderUI() {
 // NAVIGATION ROUTER
 function switchView(routeName, opts = {}) {
   const { scroll = true, syncHash = true } = opts;
-  // Guard Admin View
   if (routeName === "admin" && !getAdminSession()) {
     openAdminAuthModal();
     return;
@@ -715,7 +766,7 @@ function switchView(routeName, opts = {}) {
         history.replaceState(null, "", nextHash);
       }
     }
-  } catch (e) {}
+  } catch (e) { }
 
   document.getElementById("navLinks").classList.remove("open");
   if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
@@ -762,7 +813,6 @@ function setupAdminAuthModal() {
 
   document.getElementById("closeAdminModalBtn").addEventListener("click", closeAdminAuthModal);
 
-  // Admin Email ID + Password Login
   document.getElementById("adminLoginForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const emailInput = document.getElementById("adminEmailInput");
@@ -800,7 +850,6 @@ function setupAdminAuthModal() {
     showToast("✅ Admin Login Successful!");
   });
 
-  // Admin Logout & Direct Add
   document.getElementById("adminLogoutBtn").addEventListener("click", () => {
     clearAdminSession();
     switchView("home");
@@ -886,7 +935,6 @@ function confirmAdminDelete(productId) {
   }
 }
 
-
 function openAdminAuthModal() {
   document.getElementById("adminLoginForm").reset();
   document.getElementById("err-admin-email").textContent = "";
@@ -916,7 +964,6 @@ function renderAdminPanel() {
   document.getElementById("adminTotalCatalogCount").textContent = PRODUCTS.length;
   document.getElementById("adminCategoryCount").textContent = realCats.length;
 
-  // Visitor Published Tools Table
   const visitorWrap = document.getElementById("adminVisitorTableWrap");
   if (!visitorTools.length) {
     visitorWrap.innerHTML = `<p class="muted" style="padding:12px 0;">Abhi tak kisi visitor ne koi naya tool publish nahi kiya hai. Jab koi visitor "+ Submit Your Tool" se publish karega, uski poori details yahan dikhengi.</p>`;
@@ -967,7 +1014,6 @@ function renderAdminPanel() {
     `;
   }
 
-  // Populate Category Filter Dropdown in All Live Tools Manager
   const catSelect = document.getElementById("adminLiveCategoryFilter");
   const currentCatVal = catSelect.value || "ALL";
   catSelect.innerHTML = `<option value="ALL">All Categories (${PRODUCTS.length})</option>` +
@@ -985,7 +1031,7 @@ async function adminDeleteProduct(productId) {
   compareIds = compareIds.filter(id => id !== productId);
   try {
     localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(PRODUCTS));
-  } catch (e) {}
+  } catch (e) { }
   saveFavorites();
   refreshAllViews();
 
@@ -1083,7 +1129,6 @@ function createProductCardHTML(p) {
   `;
 }
 
-// CLEAN SAVED TOOLS VIEW (ONLY USER'S SAVED FAVORITES — NO VISITOR SUBMISSIONS SHOWN HERE)
 function renderSavedToolsView() {
   const favProducts = PRODUCTS.filter(p => favoriteIds.includes(p.id));
   document.getElementById("kpiFavorites").textContent = favProducts.length;
@@ -1159,7 +1204,7 @@ function openProductDetail(productId) {
   selectedDetailTab = "overview";
   try {
     localStorage.setItem(STORAGE_KEY_ACTIVE_DETAIL, productId);
-  } catch (e) {}
+  } catch (e) { }
   renderProductDetail(productId);
   switchView("detail");
 }
@@ -1255,9 +1300,7 @@ function renderProductDetail(productId) {
 
     tabContent = `
       <div class="showcase-main-grid">
-        <!-- LEFT MAIN COLUMN -->
         <div class="showcase-left-col">
-          <!-- ABOUT CARD -->
           <div class="showcase-panel">
             <div class="showcase-panel-head">
               <h3>✨ About ${escapeHTML(p.name)}</h3>
@@ -1274,7 +1317,6 @@ function renderProductDetail(productId) {
             </div>
           </div>
 
-          <!-- KEY FEATURES CARD -->
           <div class="showcase-panel">
             <div class="showcase-panel-head">
               <h3>⚡ Key Features</h3>
@@ -1290,7 +1332,6 @@ function renderProductDetail(productId) {
             </div>
           </div>
 
-          <!-- BOTTOM 2-COLUMN: WHAT USERS SAY + SIMILAR TOOLS / ALTERNATIVES -->
           <div class="showcase-bottom-split">
             <div class="showcase-panel">
               <div class="showcase-panel-head">
@@ -1309,7 +1350,6 @@ function renderProductDetail(productId) {
             </div>
           </div>
 
-          <!-- IMAGES ABOUT TOOL (UP TO 5 VISITOR IMAGES, CLICK TO VIEW FULL) -->
           <div class="showcase-panel" id="toolImagesAboutSection">
             <div class="showcase-panel-head">
               <h3>🖼️ Images About ${escapeHTML(p.name)}</h3>
@@ -1332,9 +1372,7 @@ function renderProductDetail(productId) {
           </div>
         </div>
 
-        <!-- RIGHT SIDEBAR COLUMN -->
         <aside class="showcase-right-col">
-          <!-- QUICK INFO -->
           <div class="showcase-panel side-quickinfo-card">
             <div class="showcase-panel-head">
               <h4>📌 Quick Info</h4>
@@ -1359,7 +1397,6 @@ function renderProductDetail(productId) {
             </div>
           </div>
 
-          <!-- PRICING & PLAN (CLICKABLE FOR ANIMATED PLANS POPUP) -->
           <div class="showcase-panel side-pricing-card clickable-pricing-panel" role="button" tabindex="0" onclick="openToolPricingModal('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openToolPricingModal('${p.id}');}" title="Click to view all pricing plans">
             <div class="showcase-panel-head">
               <h4>&#128142; Pricing &amp; Plan</h4>
@@ -1646,9 +1683,9 @@ function runAiAdviser(promptText) {
     words.forEach(w => { if (hay.includes(w)) matches++; });
     return { product: p, matches };
   })
-  .filter(item => item.matches > 0)
-  .sort((a, b) => b.matches - a.matches)
-  .slice(0, 3);
+    .filter(item => item.matches > 0)
+    .sort((a, b) => b.matches - a.matches)
+    .slice(0, 3);
 
   const resultsEl = document.getElementById("adviserResultsContainer");
   if (!scored.length) {
@@ -1746,8 +1783,8 @@ function renderSubmitPricingPlans() {
         <option value="One-time" ${pl.cycle === "One-time" ? "selected" : ""}>One-time</option>
       </select>
       ${submitPricingPlans.length > 1
-        ? `<button type="button" class="icon-btn" style="width:34px;height:34px;color:#EF4444;" onclick="removeSubmitPricingPlan(${idx})" title="Remove Plan">✕</button>`
-        : `<span style="width:34px;"></span>`}
+      ? `<button type="button" class="icon-btn" style="width:34px;height:34px;color:#EF4444;" onclick="removeSubmitPricingPlan(${idx})" title="Remove Plan">✕</button>`
+      : `<span style="width:34px;"></span>`}
     </div>
   `).join("");
 }
@@ -2024,7 +2061,6 @@ function syncStep3And4Previews() {
   const developer = (document.getElementById("s3Developer")?.value || "").trim() || "Community Creator";
   const finalLogo = uploadedLogoDataUrl || (document.getElementById("s1LogoUrl")?.value || "").trim();
 
-  // Step 3 preview sync
   const s3Thumb = document.getElementById("s3LogoThumbWrap");
   const s3Status = document.getElementById("s3LogoStatusText");
   if (s3Thumb) {
@@ -2046,7 +2082,6 @@ function syncStep3And4Previews() {
     `).join("") || `<small class="muted">No extra images added yet (up to 5 allowed).</small>`;
   }
 
-  // Step 4 review card sync
   const revBox = document.getElementById("submitReviewSummaryBox");
   if (revBox) {
     const logoHtml = finalLogo
@@ -2160,8 +2195,8 @@ function setupFourStepSubmitEvents() {
         return;
       }
       const reader = new FileReader();
-      reader.onload = () => {
-        uploadedLogoDataUrl = reader.result;
+      reader.onload = async () => {
+        uploadedLogoDataUrl = await compressImageDataUrl(reader.result, 160, 0.8);
         if (s1LogoUrl) s1LogoUrl.value = "";
         const img = document.getElementById("s1LogoPreviewImg");
         const ph = document.getElementById("s1LogoPlaceholderIcon");
@@ -2350,8 +2385,8 @@ function setupSubmissionModal() {
     }
 
     const reader = new FileReader();
-    reader.onload = () => {
-      uploadedLogoDataUrl = reader.result;
+    reader.onload = async () => {
+      uploadedLogoDataUrl = await compressImageDataUrl(reader.result, 160, 0.8);
       logoUrlInput.value = "";
       logoPreviewImg.src = uploadedLogoDataUrl;
       logoPreviewImg.classList.remove("hidden");
@@ -2647,7 +2682,6 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove("show"), 2800);
 }
 
-
 // =========================================================================
 // 6. SAAS ADVISER BLOG SECTION
 // =========================================================================
@@ -2913,7 +2947,6 @@ function closeBlogReader() {
   document.getElementById("blogReaderModal")?.classList.add("hidden");
 }
 
-
 function openToolPricingModal(productId) {
   const p = PRODUCTS.find(item => item.id === productId) || PRODUCTS.find(item => item.id === selectedDetailId) || PRODUCTS[0];
   if (!p) return;
@@ -2931,10 +2964,10 @@ function openToolPricingModal(productId) {
   const plans = (Array.isArray(p.pricingPlans) && p.pricingPlans.length)
     ? p.pricingPlans
     : [{
-        planName: p.pricing || "Standard Plan",
-        price: p.priceLabel || p.pricing || "Free",
-        cycle: p.pricing === "Free" ? "Free" : "Plan"
-      }];
+      planName: p.pricing || "Standard Plan",
+      price: p.priceLabel || p.pricing || "Free",
+      cycle: p.pricing === "Free" ? "Free" : "Plan"
+    }];
 
   if (logoWrap) logoWrap.innerHTML = renderLogoHTML(p, 46, "1.15rem");
   if (badgeEl) badgeEl.textContent = `${plans.length} ${plans.length === 1 ? "Plan" : "Plans"} • ${p.pricing || "Pricing"}`;
