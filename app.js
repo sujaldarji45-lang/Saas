@@ -1243,6 +1243,7 @@ function renderDirectory() {
 function openProductDetail(productId) {
   selectedDetailId = productId;
   selectedDetailTab = "overview";
+  isDescriptionExpanded = false;
   try {
     localStorage.setItem(STORAGE_KEY_ACTIVE_DETAIL, productId);
   } catch (e) { }
@@ -1251,6 +1252,157 @@ function openProductDetail(productId) {
 }
 
 let activeReviewSlideIdx = 0;
+let isDescriptionExpanded = false;
+
+function formatRichDescriptionHTML(rawText) {
+  const text = String(rawText || "").trim();
+  if (!text) return "<p>No description provided yet.</p>";
+
+  const applyInlineFormatting = (escapedLine) => {
+    return escapedLine
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|\s)_(.+?)_(?=\s|$|[.,!?;:])/g, "$1<em>$2</em>");
+  };
+
+  const lines = text.split(/\r?\n/);
+  let htmlParts = [];
+  let inList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) {
+      if (inList) {
+        htmlParts.push("</ul>");
+        inList = false;
+      }
+      continue;
+    }
+
+    const bulletMatch = trimmed.match(/^(?:•|-|\*)\s+(.*)$/);
+    if (bulletMatch) {
+      if (!inList) {
+        htmlParts.push("<ul>");
+        inList = true;
+      }
+      htmlParts.push(`<li>${applyInlineFormatting(escapeHTML(bulletMatch[1]))}</li>`);
+    } else {
+      if (inList) {
+        htmlParts.push("</ul>");
+        inList = false;
+      }
+      htmlParts.push(`<p>${applyInlineFormatting(escapeHTML(trimmed))}</p>`);
+    }
+  }
+
+  if (inList) htmlParts.push("</ul>");
+  return htmlParts.join("");
+}
+
+function toggleDescriptionExpand() {
+  isDescriptionExpanded = !isDescriptionExpanded;
+  const descBox = document.getElementById("saRichDescriptionBody");
+  const toggleBtn = document.getElementById("saDescToggleBtn");
+  if (descBox) {
+    descBox.classList.toggle("sa-desc-collapsed", !isDescriptionExpanded);
+  }
+  if (toggleBtn) {
+    toggleBtn.innerHTML = isDescriptionExpanded ? "Show Less ⌃" : "Show More (Full Description) ⌄";
+  }
+}
+
+function scrollToProfileSection(sectionId, tabKey) {
+  selectedDetailTab = tabKey || "overview";
+  document.querySelectorAll(".sa-tab-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.saTab === selectedDetailTab);
+  });
+  document.querySelectorAll(".g2-jump-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.saTab === selectedDetailTab);
+  });
+  if (sectionId === "top") {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  const el = document.getElementById(sectionId);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function getToolPricingCardsData(p) {
+  const baseFeatures = Array.isArray(p.features) && p.features.length
+    ? p.features
+    : ["Core platform access", "Cloud workspace sync", "Standard support"];
+
+  if (Array.isArray(p.pricingPlans) && p.pricingPlans.length) {
+    return p.pricingPlans.map((pl, idx) => {
+      const customFeats = Array.isArray(pl.planFeatures) && pl.planFeatures.length
+        ? pl.planFeatures
+        : (idx === 0
+          ? baseFeatures.slice(0, 4)
+          : idx === 1
+            ? [`All features in ${p.pricingPlans[0]?.planName || "Basic"} plus`, ...baseFeatures.slice(0, 4)]
+            : [`All features in ${p.pricingPlans[idx - 1]?.planName || "Pro"} plus`, "Priority support & team controls", "Advanced export & integrations"]);
+      return {
+        planName: pl.planName || `Plan ${idx + 1}`,
+        price: pl.price || "Free",
+        cycle: pl.cycle || "Month",
+        features: customFeats
+      };
+    });
+  }
+
+  const label = String(p.priceLabel || p.pricing || "Free");
+  if (label.includes("/")) {
+    const parts = label.split("/").map(s => s.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      return [
+        {
+          planName: `${p.name} Starter — Essential Features for Individual Users`,
+          price: parts[0],
+          cycle: parts[0].toLowerCase().includes("free") ? "Free Tier" : "Month",
+          features: baseFeatures.slice(0, 4)
+        },
+        {
+          planName: `${p.name} Pro — Full Capabilities & Team Collaboration`,
+          price: parts[1].replace(/\s*mo$/i, ""),
+          cycle: "Month",
+          features: ["All features in Starter plus", ...baseFeatures]
+        }
+      ];
+    }
+  }
+
+  return [
+    {
+      planName: `${p.name} Standard — ${p.pricing || "Plan"}`,
+      price: label,
+      cycle: p.pricing === "Free" ? "Forever Free" : "Subscription",
+      features: baseFeatures
+    }
+  ];
+}
+
+function getToolFaqsData(p, devName, billingSummary) {
+  if (Array.isArray(p.faqs) && p.faqs.length) return p.faqs;
+  return [
+    {
+      q: `What is ${p.name} used for?`,
+      a: `${p.name} is a ${p.category} solution designed for ${p.bestFor}. ${p.tagline}`
+    },
+    {
+      q: `What pricing plans does ${p.name} offer?`,
+      a: `${p.name} is available under the ${p.pricing} model (${billingSummary}). You can check individual plan tiers in the Pricing section above.`
+    },
+    {
+      q: `Who develops and maintains ${p.name}?`,
+      a: `${p.name} is developed by ${devName}. Visit the official website (${p.website}) for latest releases and documentation.`
+    },
+    {
+      q: `What are the top features of ${p.name}?`,
+      a: `Key capabilities include ${(p.features || []).join(", ")}.`
+    }
+  ];
+}
 
 function getComputedRatingInfo(p) {
   const reviews = p.reviews || [];
@@ -1282,89 +1434,101 @@ function renderProductDetail(productId) {
   const alts = PRODUCTS.filter(item => item.category === p.category && item.id !== p.id);
   const devName = p.developer || (p.isUserSubmitted ? "Community Publisher" : "Verified Vendor");
   const listedDate = p.addedAt || "Listed in Catalog";
+  const billingSummary = p.billingInfo || p.priceLabel || p.pricing || "Yearly, Monthly";
+  const platformsText = p.platforms || "Web Browser, Windows, macOS, Mobile";
+  const integrationsText = p.integrations || "REST API, Cloud Export, Team Workspaces";
+  const planCards = getToolPricingCardsData(p);
+  const faqsList = getToolFaqsData(p, devName, billingSummary);
+  const descRaw = String(p.description || p.tagline || "");
+  const isLongDesc = descRaw.length > 1400;
 
   if (activeReviewSlideIdx >= reviews.length) activeReviewSlideIdx = 0;
 
-  let tabContent = "";
-  if (selectedDetailTab === "overview") {
-    const currentReview = reviews[activeReviewSlideIdx];
+  const navTabs = [
+    { key: "overview", label: "Overview", target: "sa-sec-description" },
+    { key: "pricing", label: "Pricing", target: "sa-sec-pricing" },
+    { key: "features", label: "Features", target: "sa-sec-features" },
+    { key: "specs", label: "Key Specification", target: "sa-sec-specs" },
+    { key: "company", label: "Company Details", target: "sa-sec-company" },
+    { key: "description", label: "Description", target: "sa-sec-description" },
+    { key: "alternative", label: "Alternative", target: "sa-sec-alternative" },
+    { key: "reviews", label: "User Reviews", target: "sa-sec-reviews" },
+    { key: "faqs", label: "FAQs", target: "sa-sec-faqs" }
+  ];
 
-    const userSayHTML = reviews.length > 0
-      ? `
-        <div class="usersay-body">
-          <div class="usersay-score-col">
-            <div class="usersay-big-num">${ratingInfo.numericScore}</div>
-            <div class="usersay-stars">${"★".repeat(Math.round(Number(ratingInfo.numericScore)))}${"☆".repeat(5 - Math.round(Number(ratingInfo.numericScore)))}</div>
-            <div class="muted" style="font-size:0.78rem; margin-top:4px;">${reviews.length} user ${reviews.length === 1 ? "review" : "reviews"}</div>
-          </div>
-          <div class="usersay-quote-card">
-            <p class="usersay-quote-text">“${escapeHTML(currentReview.comment)}”</p>
-            <div class="usersay-author-row">
-              <div class="usersay-avatar">${escapeHTML(currentReview.user[0].toUpperCase())}</div>
-              <div>
-                <strong style="font-size:0.86rem; display:block;">${escapeHTML(currentReview.user)}</strong>
-                <span style="font-size:0.74rem; color:#F59E0B; font-weight:700;">${"★".repeat(currentReview.rating)} Verified Review</span>
+  container.innerHTML = `
+    <button class="btn btn-outline btn-sm" style="margin-bottom:16px;" onclick="switchView('directory')">← Back to Directory</button>
+
+    <div class="sa-profile-shell">
+      <!-- TOP ARCSITE / SAAS ADVISER PROFILE HEADER -->
+      <div class="sa-profile-top">
+        <div class="sa-header-flex">
+          <div class="sa-brand-block">
+            <div class="sa-logo-card">
+              ${renderLogoHTML(p, 74, "1.8rem")}
+            </div>
+            <div>
+              <div class="sa-title-row">
+                <h1>${escapeHTML(p.name)}</h1>
+                <span class="sa-verified-seal" title="Verified Listed Software">✓</span>
+                <span class="tag-pill">${escapeHTML(p.category)}</span>
               </div>
-              ${reviews.length > 1 ? `
-                <div style="margin-left:auto; display:flex; gap:6px;">
-                  <button type="button" class="icon-btn" style="width:28px;height:28px;" onclick="cycleReviewSlide(-1)" title="Previous Review">‹</button>
-                  <button type="button" class="icon-btn" style="width:28px;height:28px;" onclick="cycleReviewSlide(1)" title="Next Review">›</button>
-                </div>
-              ` : ""}
-            </div>
-          </div>
-        </div>
-      `
-      : `
-        <div class="usersay-empty">
-          <p class="muted" style="font-size:0.88rem;">Abhi tak <strong>${escapeHTML(p.name)}</strong> par kisi user ne review nahi diya hai.</p>
-          <button type="button" class="btn btn-outline btn-sm mt-12" onclick="setDetailTab('reviews')">✍️ Write First Review</button>
-        </div>
-      `;
-
-    const similarCardsHTML = alts.length > 0
-      ? `
-        <div class="similar-row-strip">
-          ${alts.slice(0, 4).map(a => `
-            <div class="similar-row-item" onclick="openProductDetail('${a.id}')" title="${escapeHTML(a.name)}">
-              ${renderLogoHTML(a, 34, "0.92rem")}
-              <div class="similar-row-text">
-                <strong>${escapeHTML(a.name)}</strong>
-                <small>${escapeHTML(a.pricing)}</small>
+              <p class="sa-sub-tagline">${escapeHTML(p.tagline)}</p>
+              <div class="sa-meta-strip">
+                <span class="sa-meta-item" style="color:#059669;">💲 ${escapeHTML(billingSummary)}</span>
+                <span class="sa-meta-divider">|</span>
+                <span class="sa-meta-item" style="color:#D97706;">★ ${ratingInfo.scoreText} (${reviews.length} ${reviews.length === 1 ? "Review" : "Reviews"})</span>
+                <span class="sa-meta-divider">|</span>
+                <span class="sa-meta-item">👤 By ${escapeHTML(devName)}</span>
               </div>
-              <span class="similar-row-go">›</span>
-            </div>
-          `).join("")}
-        </div>
-      `
-      : `<p class="muted" style="font-size:0.84rem; padding:8px 0;">Is category mein abhi aur koi alternative tool list nahi hai.</p>`;
-
-    tabContent = `
-      <div class="showcase-main-grid">
-        <!-- LEFT MAIN COLUMN -->
-        <div class="showcase-left-col">
-          <!-- ABOUT CARD -->
-          <div class="showcase-panel">
-            <div class="showcase-panel-head">
-              <h3>✨ About ${escapeHTML(p.name)}</h3>
-              <span class="tag-pill">${escapeHTML(p.bestFor)}</span>
-            </div>
-            <p class="showcase-desc">${escapeHTML(p.description)}</p>
-            <div class="about-checklist">
-              ${p.features.slice(0, 3).map(f => `
-                <div class="about-check-row">
-                  <span class="feature-check-badge">✓</span>
-                  <span>${escapeHTML(f)}</span>
-                </div>
-              `).join("")}
             </div>
           </div>
 
-          <!-- KEY FEATURES CARD -->
-          <div class="showcase-panel">
-            <div class="showcase-panel-head">
-              <h3>⚡ Key Features</h3>
-              <span class="muted" style="font-size:0.8rem;">${p.features.length} Core Capabilities</span>
+          <div class="sa-action-buttons">
+            <button type="button" class="btn btn-sa-review" onclick="scrollToProfileSection('sa-sec-reviews', 'reviews')">✍️ Write a Review</button>
+            <button type="button" class="btn btn-outline" onclick="toggleFavorite('${p.id}')">${isFav ? "❤️ Saved" : "🤍 Save"}</button>
+            <button type="button" class="btn btn-outline" onclick="toggleCompare('${p.id}')">${inCompare ? "✓ In Compare" : "+ Compare"}</button>
+            <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" class="btn btn-sa-demo">Visit Website ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- STICKY 9-TAB SAAS ADVISER NAVIGATION BAR -->
+      <nav class="sa-tabs-bar" aria-label="Product Profile Sections">
+        ${navTabs.map(t => `
+          <button
+            type="button"
+            class="sa-tab-btn ${selectedDetailTab === t.key ? "active" : ""}"
+            data-sa-tab="${t.key}"
+            onclick="${t.key === "pricing" ? `openToolPricingModal('${p.id}')` : `scrollToProfileSection('${t.target}', '${t.key}')`}"
+          >${t.label}</button>
+        `).join("")}
+      </nav>
+
+      <!-- MAIN 2-COLUMN PROFILE BODY -->
+      <div class="sa-body-grid">
+        <div class="sa-main-column">
+          <!-- 1. ABOUT COMPANY & FULL DESCRIPTION (UP TO 40,000 CHARS) -->
+          <section id="sa-sec-description" class="sa-section-card">
+            <div class="sa-section-heading">
+              <h2>About ${escapeHTML(p.name)} &amp; Overview</h2>
+              <span class="muted" style="font-size:0.8rem;">Updated: ${escapeHTML(listedDate)}</span>
+            </div>
+            <div id="saRichDescriptionBody" class="sa-rich-description ${isLongDesc && !isDescriptionExpanded ? "sa-desc-collapsed" : ""}">
+              ${formatRichDescriptionHTML(descRaw)}
+            </div>
+            ${isLongDesc ? `
+              <button type="button" id="saDescToggleBtn" class="sa-show-more-btn" onclick="toggleDescriptionExpand()">
+                ${isDescriptionExpanded ? "Show Less ⌃" : "Show More (Full Description) ⌄"}
+              </button>
+            ` : ""}
+          </section>
+
+          <!-- 3. KEY FEATURES -->
+          <section id="sa-sec-features" class="sa-section-card">
+            <div class="sa-section-heading">
+              <h2>Key Features of ${escapeHTML(p.name)}</h2>
+              <span class="badge-pill">${p.features.length} Core Capabilities</span>
             </div>
             <div class="features-modern-grid">
               ${p.features.map(f => `
@@ -1374,31 +1538,67 @@ function renderProductDetail(productId) {
                 </div>
               `).join("")}
             </div>
-          </div>
+          </section>
 
-          <!-- BOTTOM 2-COLUMN: WHAT USERS SAY + SIMILAR TOOLS / ALTERNATIVES -->
-          <div class="showcase-bottom-split">
-            <div class="showcase-panel">
-              <div class="showcase-panel-head">
-                <h3>⭐ What Users Say</h3>
-                <button type="button" class="text-btn" onclick="setDetailTab('reviews')">View All (${reviews.length}) →</button>
-              </div>
-              ${userSayHTML}
+          <!-- 4. KEY SPECIFICATION -->
+          <section id="sa-sec-specs" class="sa-section-card">
+            <div class="sa-section-heading">
+              <h2>Key Specification</h2>
+              <span class="muted" style="font-size:0.8rem;">Technical &amp; Platform Details</span>
             </div>
-
-            <div class="showcase-panel">
-              <div class="showcase-panel-head">
-                <h3>🔄 Similar Tools / Alternatives</h3>
-                <button type="button" class="text-btn" onclick="setDetailTab('alternatives')">View All (${alts.length}) →</button>
+            <div class="sa-specs-grid">
+              <div class="sa-spec-box">
+                <small>Software Category</small>
+                <strong>${escapeHTML(p.category)}</strong>
               </div>
-              ${similarCardsHTML}
+              <div class="sa-spec-box">
+                <small>Supported Platforms</small>
+                <strong>${escapeHTML(platformsText)}</strong>
+              </div>
+              <div class="sa-spec-box">
+                <small>Pricing &amp; Licensing</small>
+                <strong>${escapeHTML(p.pricing)} (${escapeHTML(p.priceLabel)})</strong>
+              </div>
+              <div class="sa-spec-box">
+                <small>Integrations &amp; API</small>
+                <strong>${escapeHTML(integrationsText)}</strong>
+              </div>
+              <div class="sa-spec-box" style="grid-column:1/-1;">
+                <small>Ideal Target Audience</small>
+                <strong>${escapeHTML(p.bestFor)}</strong>
+              </div>
             </div>
-          </div>
+          </section>
 
-          <!-- IMAGES ABOUT TOOL (UP TO 5 VISITOR IMAGES, CLICK TO VIEW FULL) -->
-          <div class="showcase-panel" id="toolImagesAboutSection">
-            <div class="showcase-panel-head">
-              <h3>🖼️ Images About ${escapeHTML(p.name)}</h3>
+          <!-- 5. COMPANY DETAILS -->
+          <section id="sa-sec-company" class="sa-section-card">
+            <div class="sa-section-heading">
+              <h2>Company Details</h2>
+            </div>
+            <div class="sa-specs-grid">
+              <div class="sa-spec-box">
+                <small>Vendor / Developer</small>
+                <strong>${escapeHTML(devName)}</strong>
+              </div>
+              <div class="sa-spec-box">
+                <small>Official Website</small>
+                <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" class="text-btn" style="word-break:break-all;">${escapeHTML(p.website)} ↗</a>
+              </div>
+              <div class="sa-spec-box">
+                <small>Directory Listing Date</small>
+                <strong>${escapeHTML(listedDate)}</strong>
+              </div>
+              <div class="sa-spec-box">
+                <small>Verification Status</small>
+                <strong style="color:#059669;">✓ Active &amp; Verified</strong>
+              </div>
+            </div>
+          </section>
+
+          <!-- 6. IMAGES ABOUT TOOL (UP TO 5 VISITOR IMAGES) -->
+          <section id="toolImagesAboutSection" class="sa-section-card">
+            <div class="sa-section-heading">
+              <h2>Images &amp; Screenshots of ${escapeHTML(p.name)}</h2>
               <span class="muted" style="font-size:0.8rem;">${(p.images && p.images.length) ? `${p.images.length} / 5 Images • Click to expand` : "0 / 5 Images"}</span>
             </div>
             ${(p.images && p.images.length) ? `
@@ -1412,151 +1612,120 @@ function renderProductDetail(productId) {
               </div>
             ` : `
               <div class="tool-gallery-empty">
-                <p class="muted" style="font-size:0.85rem;">Is tool ke liye abhi koi preview image add nahi hui hai. Creator profile banate waqt up to <strong>5 images</strong> add kar sakte hain.</p>
+                <p class="muted" style="font-size:0.85rem;">No preview screenshots uploaded yet for ${escapeHTML(p.name)}.</p>
               </div>
             `}
-          </div>
+          </section>
+
+          <!-- 7. USER REVIEWS & WRITE A REVIEW -->
+          <section id="sa-sec-reviews" class="sa-section-card">
+            <div class="sa-section-heading">
+              <h2>User Reviews (${reviews.length})</h2>
+              <span class="badge-pill">★ ${ratingInfo.scoreText} Overall</span>
+            </div>
+
+            <div class="detail-overview-grid">
+              <div>
+                <div class="usersay-body" style="margin-bottom:14px;">
+                  <div class="usersay-score-col">
+                    <div class="usersay-big-num">${ratingInfo.numericScore}</div>
+                    <div class="usersay-stars">${"★".repeat(Math.round(Number(ratingInfo.numericScore)))}${"☆".repeat(5 - Math.round(Number(ratingInfo.numericScore)))}</div>
+                    <div class="muted" style="font-size:0.76rem; margin-top:4px;">${reviews.length} ${reviews.length === 1 ? "review" : "reviews"}</div>
+                  </div>
+                  <div class="usersay-quote-card">
+                    <p class="usersay-quote-text">${reviews.length ? `“${escapeHTML(reviews[0].comment)}”` : `Be the first to share an authentic review of ${escapeHTML(p.name)}.`}</p>
+                    <small class="muted">${ratingInfo.countLabel}</small>
+                  </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  ${reviews.length ? reviews.map(r => `
+                    <div class="review-card-accent">
+                      <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <strong>${escapeHTML(r.user)}</strong>
+                        <span style="color:#F59E0B; font-weight:700;">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</span>
+                      </div>
+                      <p class="muted" style="margin-top:6px;">${escapeHTML(r.comment)}</p>
+                    </div>
+                  `).join("") : ""}
+                </div>
+              </div>
+
+              <div class="card-box" style="background:#F8FAFC;">
+                <h4>✍️ Write a Review</h4>
+                <p class="muted" style="font-size:0.8rem; margin-bottom:10px;">Your feedback updates ${escapeHTML(p.name)}'s live rating.</p>
+                <form onsubmit="submitReview(event, '${p.id}')" class="vendor-form">
+                  <input type="text" id="revUser" class="input" placeholder="Your Name *" required />
+                  <select id="revRating" class="input">
+                    <option value="5">★★★★★ (5/5 — Excellent)</option>
+                    <option value="4">★★★★☆ (4/5 — Very Good)</option>
+                    <option value="3">★★★☆☆ (3/5 — Average)</option>
+                    <option value="2">★★☆☆☆ (2/5 — Fair)</option>
+                    <option value="1">★☆☆☆☆ (1/5 — Poor)</option>
+                  </select>
+                  <textarea id="revComment" class="input" rows="3" placeholder="Share your experience with ${escapeHTML(p.name)}... *" required></textarea>
+                  <button type="submit" class="btn btn-primary" style="width:100%;">Post Review</button>
+                </form>
+              </div>
+            </div>
+          </section>
+
+          <!-- 8. SIMILAR TOOLS / ALTERNATIVES -->
+          <section id="sa-sec-alternative" class="sa-section-card">
+            <div class="sa-section-heading">
+              <h2>Top Alternatives to ${escapeHTML(p.name)} (${alts.length})</h2>
+              <button type="button" class="text-btn" onclick="filterDirectoryByCategory('${escapeHTML(p.category)}')">Browse All ${escapeHTML(p.category)} →</button>
+            </div>
+            ${alts.length ? `
+              <div class="products-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                ${alts.slice(0, 6).map(a => createProductCardHTML(a)).join("")}
+              </div>
+            ` : `<p class="muted">No other alternatives listed in ${escapeHTML(p.category)} yet.</p>`}
+          </section>
+
+          <!-- 9. FAQs -->
+          <section id="sa-sec-faqs" class="sa-section-card">
+            <div class="sa-section-heading">
+              <h2>Frequently Asked Questions (FAQs)</h2>
+            </div>
+            <div class="sa-faq-list">
+              ${faqsList.map((fq, idx) => `
+                <details class="sa-faq-item" ${idx === 0 ? "open" : ""}>
+                  <summary>
+                    <span>${escapeHTML(fq.q)}</span>
+                    <span style="color:#64748B;">▾</span>
+                  </summary>
+                  <p>${escapeHTML(fq.a)}</p>
+                </details>
+              `).join("")}
+            </div>
+          </section>
         </div>
 
-        <!-- RIGHT SIDEBAR COLUMN -->
-        <aside class="showcase-right-col">
-          <!-- QUICK INFO -->
-          <div class="showcase-panel side-quickinfo-card">
-            <div class="showcase-panel-head">
-              <h4>📌 Quick Info</h4>
-            </div>
-            <div class="quick-info-list">
-              <div class="qi-row">
-                <span class="qi-label">👤 Developer</span>
-                <strong class="qi-val">${escapeHTML(devName)}</strong>
-              </div>
-              <div class="qi-row">
-                <span class="qi-label">📂 Category</span>
-                <strong class="qi-val">${escapeHTML(p.category)}</strong>
-              </div>
-              <div class="qi-row">
-                <span class="qi-label">🔗 Website</span>
-                <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" class="text-btn qi-val" style="text-align:right; word-break:break-all;">${escapeHTML(p.website.replace(/^https?:\/\//, ""))}</a>
-              </div>
-              <div class="qi-row">
-                <span class="qi-label">📅 Listed</span>
-                <strong class="qi-val">${escapeHTML(listedDate)}</strong>
-              </div>
-            </div>
+        <!-- RIGHT STICKY G2 + SAAS ADVISER NAVIGATION SIDEBAR -->
+        <aside class="sa-right-sidebar">
+          <div class="g2-jump-card">
+            <small class="info-box-label" style="padding:2px 4px;">Quick Section Jump</small>
+            ${navTabs.filter(t => t.key !== "description").map(t => `
+              <button
+                type="button"
+                class="g2-jump-btn ${selectedDetailTab === t.key ? "active" : ""}"
+                data-sa-tab="${t.key}"
+                onclick="${t.key === "pricing" ? `openToolPricingModal('${p.id}')` : `scrollToProfileSection('${t.target}', '${t.key}')`}"
+              >${t.label}</button>
+            `).join("")}
           </div>
 
-          <!-- PRICING & PLAN (CLICKABLE FOR ANIMATED PLANS POPUP) -->
-          <div class="showcase-panel side-pricing-card clickable-pricing-panel" role="button" tabindex="0" onclick="openToolPricingModal('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openToolPricingModal('${p.id}');}" title="Click to view all pricing plans">
+          <div class="showcase-panel side-pricing-card clickable-pricing-panel" role="button" tabindex="0" onclick="openToolPricingModal('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openToolPricingModal('${p.id}');}">
             <div class="showcase-panel-head">
-              <h4>&#128142; Pricing &amp; Plan</h4>
+              <h4>💎 Pricing Summary</h4>
               <span class="price-badge">${escapeHTML(p.pricing)}</span>
             </div>
             <div class="side-price-big">${escapeHTML(p.priceLabel)}</div>
-            ${(p.pricingPlans && p.pricingPlans.length) ? `
-              <div class="detail-plans-list mt-12">
-                ${p.pricingPlans.map(pl => `
-                  <div class="detail-plan-item">
-                    <div>
-                      <strong>${escapeHTML(pl.planName)}</strong>
-                      <small class="muted" style="display:block; font-size:0.72rem;">${escapeHTML(pl.cycle)}</small>
-                    </div>
-                    <span class="price-badge">${escapeHTML(pl.price)}</span>
-                  </div>
-                `).join("")}
-              </div>
-            ` : ""}
-            <p class="muted" style="font-size:0.82rem; margin-top:8px;">Best suited for ${escapeHTML(p.bestFor)}.</p>
-            <span class="pricing-tap-hint">&#10024; Click to view plans with animation &#8250;</span>
+            <p class="muted" style="font-size:0.82rem; margin-top:6px;">Best for ${escapeHTML(p.bestFor)}.</p>
+            <span class="pricing-tap-hint">✨ View Animated Plans ›</span>
           </div>
         </aside>
-      </div>
-    `;
-  } else if (selectedDetailTab === "reviews") {
-    tabContent = `
-      <div class="detail-overview-grid">
-        <div>
-          <h3>⭐ Real User Reviews (${reviews.length})</h3>
-          <p class="muted" style="font-size:0.84rem;">Rating dynamically updates from actual user submissions.</p>
-          <div style="display:flex; flex-direction:column; gap:12px; margin-top:14px;">
-            ${reviews.length ? reviews.map(r => `
-              <div class="review-card-accent">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <strong>${escapeHTML(r.user)}</strong>
-                  <span style="color:#F59E0B; font-weight:700;">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</span>
-                </div>
-                <p class="muted" style="margin-top:6px;">${escapeHTML(r.comment)}</p>
-              </div>
-            `).join("") : `<div class="card-box"><p class="muted">No reviews written yet for ${escapeHTML(p.name)}. Add the first genuine review using the form!</p></div>`}
-          </div>
-        </div>
-
-        <div class="card-box" style="background:#F8FAFC;">
-          <h4>✍️ Write a Review</h4>
-          <p class="muted" style="font-size:0.8rem; margin-bottom:10px;">Your rating and feedback will immediately update ${escapeHTML(p.name)}'s live score.</p>
-          <form onsubmit="submitReview(event, '${p.id}')" class="vendor-form">
-            <input type="text" id="revUser" class="input" placeholder="Your Name *" required />
-            <select id="revRating" class="input">
-              <option value="5">★★★★★ (5/5 — Excellent)</option>
-              <option value="4">★★★★☆ (4/5 — Very Good)</option>
-              <option value="3">★★★☆☆ (3/5 — Average)</option>
-              <option value="2">★★☆☆☆ (2/5 — Fair)</option>
-              <option value="1">★☆☆☆☆ (1/5 — Poor)</option>
-            </select>
-            <textarea id="revComment" class="input" rows="3" placeholder="Share your real experience with ${escapeHTML(p.name)}... *" required></textarea>
-            <button type="submit" class="btn btn-primary" style="width:100%;">Post Review</button>
-          </form>
-        </div>
-      </div>
-    `;
-  } else {
-    tabContent = `
-      <div>
-        <h3>🔄 Similar Tools & Alternatives in ${escapeHTML(p.category)} (${alts.length})</h3>
-        <div class="products-grid mt-12">
-          ${alts.length ? alts.map(a => createProductCardHTML(a)).join("") : `<p class="muted">No other tools listed in this category yet.</p>`}
-        </div>
-      </div>
-    `;
-  }
-
-  container.innerHTML = `
-    <button class="btn btn-outline btn-sm" style="margin-bottom:16px;" onclick="switchView('directory')">← Back to Directory</button>
-    <div class="detail-hero-shell">
-      <div class="detail-gradient-banner">
-        <div class="detail-banner-top">
-          <div class="detail-title-group">
-            <div class="detail-logo-ring">
-              ${renderLogoHTML(p, 68, "1.7rem")}
-            </div>
-            <div class="detail-banner-title">
-              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <h1>${escapeHTML(p.name)}</h1>
-                <span class="badge-glass-cyan">${escapeHTML(p.category)}</span>
-              </div>
-              <p class="detail-banner-tagline">${escapeHTML(p.tagline)}</p>
-              <div class="detail-badges-row">
-                <span class="badge-glass-amber">★ ${ratingInfo.scoreText} (${reviews.length} ${reviews.length === 1 ? "Review" : "Reviews"})</span>
-                <button type="button" class="badge-glass-emerald" style="cursor:pointer;" onclick="openToolPricingModal('${p.id}')" title="Click to view all pricing plans">${escapeHTML(p.priceLabel)} &bull; View Plans &#8250;</button>
-              </div>
-            </div>
-          </div>
-
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn btn-banner-ghost" onclick="toggleFavorite('${p.id}')">${isFav ? "❤️ Saved" : "🤍 Save"}</button>
-            <button class="btn btn-banner-ghost" onclick="toggleCompare('${p.id}')">${inCompare ? "✓ In Compare" : "+ Compare"}</button>
-            <a href="${escapeHTML(p.website)}" target="_blank" rel="noopener" class="btn btn-cta-cyan">Visit Website ↗</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="detail-body-pad">
-        <div class="detail-tabs-modern">
-          <button class="detail-tab-pill ${selectedDetailTab === 'overview' ? 'active' : ''}" onclick="setDetailTab('overview')">🏠 Overview</button>
-          <button class="detail-tab-pill ${selectedDetailTab === 'reviews' ? 'active' : ''}" onclick="setDetailTab('reviews')">⭐ Reviews (${reviews.length})</button>
-          <button class="detail-tab-pill ${selectedDetailTab === 'alternatives' ? 'active' : ''}" onclick="setDetailTab('alternatives')">🔄 Alternatives (${alts.length})</button>
-        </div>
-
-        ${tabContent}
       </div>
     </div>
   `;
@@ -1572,7 +1741,19 @@ function cycleReviewSlide(dir) {
 
 function setDetailTab(tab) {
   selectedDetailTab = tab;
-  renderProductDetail(selectedDetailId);
+  const map = {
+    overview: "sa-sec-description",
+    pricing: "sa-sec-pricing",
+    features: "sa-sec-features",
+    specs: "sa-sec-specs",
+    company: "sa-sec-company",
+    description: "sa-sec-description",
+    alternatives: "sa-sec-alternative",
+    alternative: "sa-sec-alternative",
+    reviews: "sa-sec-reviews",
+    faqs: "sa-sec-faqs"
+  };
+  scrollToProfileSection(map[tab] || "sa-sec-description", tab);
 }
 
 function submitReview(e, productId) {
@@ -1801,39 +1982,49 @@ function renderSubmitPricingPlans() {
   if (!listEl) return;
 
   listEl.innerHTML = submitPricingPlans.map((pl, idx) => `
-    <div class="pricing-plan-row-card">
-      <div class="plan-row-num">${idx + 1}</div>
+    <div class="pricing-plan-block">
+      <div class="pricing-plan-top-row">
+        <div class="plan-row-num">${idx + 1}</div>
+        <input
+          type="text"
+          class="input"
+          placeholder="Plan Name (e.g. DRAW BASIC, Pro Monthly)"
+          value="${escapeHTML(pl.planName)}"
+          oninput="updateSubmitPlanField(${idx}, 'planName', this.value)"
+        />
+        <div class="numeric-price-group">
+          <select class="input currency-mini-select" onchange="updateSubmitPlanField(${idx}, 'currency', this.value)" title="Currency">
+            <option value="$" ${(pl.currency || "$") === "$" ? "selected" : ""}>$</option>
+            <option value="₹" ${pl.currency === "₹" ? "selected" : ""}>₹</option>
+            <option value="€" ${pl.currency === "€" ? "selected" : ""}>€</option>
+          </select>
+          <input
+            type="text"
+            inputmode="decimal"
+            class="input"
+            placeholder="0"
+            value="${escapeHTML(sanitizeNumericPrice(pl.price))}"
+            oninput="handleNumericPlanPriceInput(${idx}, this)"
+          />
+        </div>
+        <select class="input" onchange="updateSubmitPlanField(${idx}, 'cycle', this.value)">
+          <option value="Free" ${pl.cycle === "Free" ? "selected" : ""}>Free</option>
+          <option value="Monthly" ${pl.cycle === "Monthly" ? "selected" : ""}>Monthly</option>
+          <option value="Yearly" ${pl.cycle === "Yearly" ? "selected" : ""}>Yearly</option>
+          <option value="One-time" ${pl.cycle === "One-time" ? "selected" : ""}>One-time</option>
+        </select>
+        ${submitPricingPlans.length > 1
+        ? `<button type="button" class="icon-btn" style="width:34px;height:34px;color:#EF4444;" onclick="removeSubmitPricingPlan(${idx})" title="Remove Plan">✕</button>`
+        : `<span style="width:34px;"></span>`}
+      </div>
       <input
         type="text"
         class="input"
-        placeholder="Plan Name (e.g. Free Plan, Pro Monthly, Yearly)"
-        value="${escapeHTML(pl.planName)}"
-        oninput="updateSubmitPlanField(${idx}, 'planName', this.value)"
+        style="font-size:0.8rem;"
+        placeholder="Plan included features (comma-separated, e.g. Unlimited projects, Cloud backup, PDF export)"
+        value="${escapeHTML(pl.planFeaturesText || "")}"
+        oninput="updateSubmitPlanField(${idx}, 'planFeaturesText', this.value)"
       />
-      <div class="numeric-price-group">
-        <select class="input currency-mini-select" onchange="updateSubmitPlanField(${idx}, 'currency', this.value)" title="Currency">
-          <option value="$" ${(pl.currency || "$") === "$" ? "selected" : ""}>$</option>
-          <option value="₹" ${pl.currency === "₹" ? "selected" : ""}>₹</option>
-          <option value="€" ${pl.currency === "€" ? "selected" : ""}>€</option>
-        </select>
-        <input
-          type="text"
-          inputmode="decimal"
-          class="input"
-          placeholder="0"
-          value="${escapeHTML(sanitizeNumericPrice(pl.price))}"
-          oninput="handleNumericPlanPriceInput(${idx}, this)"
-        />
-      </div>
-      <select class="input" onchange="updateSubmitPlanField(${idx}, 'cycle', this.value)">
-        <option value="Free" ${pl.cycle === "Free" ? "selected" : ""}>Free</option>
-        <option value="Monthly" ${pl.cycle === "Monthly" ? "selected" : ""}>Monthly</option>
-        <option value="Yearly" ${pl.cycle === "Yearly" ? "selected" : ""}>Yearly</option>
-        <option value="One-time" ${pl.cycle === "One-time" ? "selected" : ""}>One-time</option>
-      </select>
-      ${submitPricingPlans.length > 1
-      ? `<button type="button" class="icon-btn" style="width:34px;height:34px;color:#EF4444;" onclick="removeSubmitPricingPlan(${idx})" title="Remove Plan">✕</button>`
-      : `<span style="width:34px;"></span>`}
     </div>
   `).join("");
 }
@@ -2219,7 +2410,7 @@ function setupFourStepSubmitEvents() {
   const s2Cnt = document.getElementById("s2DescCounter");
   if (s2Desc && s2Cnt) {
     s2Desc.addEventListener("input", () => {
-      s2Cnt.textContent = `${s2Desc.value.length}/2000`;
+      s2Cnt.textContent = `${s2Desc.value.length}/40000`;
     });
   }
 
@@ -2334,7 +2525,8 @@ function handleFourStepFinalSubmit(e) {
       price: formatPlanDisplayPrice(pl),
       rawAmount: Number(sanitizeNumericPrice(pl.price)),
       currency: pl.currency || "$",
-      cycle: pl.cycle || "Monthly"
+      cycle: pl.cycle || "Monthly",
+      planFeatures: String(pl.planFeaturesText || "").split(",").map(s => s.trim()).filter(Boolean)
     }));
   const priceLabel = buildCombinedPriceLabel(cleanedPlans, pricing, document.getElementById("s2PriceLabel").value);
   const developer = (document.getElementById("s3Developer").value || "").trim() || "Community Creator";
@@ -2342,6 +2534,20 @@ function handleFourStepFinalSubmit(e) {
   const colors = ["#2563EB", "#0284C7", "#059669", "#7C3AED", "#D97706", "#0F172A"];
   const pickedColor = colors[PRODUCTS.length % colors.length];
   const nowStr = launchDate || new Date().toLocaleString([], { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+  const billingInfo = (document.getElementById("s2Benefits")?.value || "").trim();
+  const platforms = (document.getElementById("s2Platforms")?.value || "").trim();
+  const integrations = (document.getElementById("s2Integrations")?.value || "").trim();
+  const rawFaqs = (document.getElementById("s2Faqs")?.value || "").trim();
+  const parsedFaqs = rawFaqs
+    ? rawFaqs.split(/\r?\n/).map(line => {
+      const parts = line.split("|");
+      if (parts.length >= 2 && parts[0].trim() && parts[1].trim()) {
+        return { q: parts[0].trim(), a: parts.slice(1).join("|").trim() };
+      }
+      return null;
+    }).filter(Boolean)
+    : [];
 
   const newProduct = {
     id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now(),
@@ -2353,6 +2559,10 @@ function handleFourStepFinalSubmit(e) {
     category,
     pricing,
     priceLabel,
+    billingInfo,
+    platforms,
+    integrations,
+    faqs: parsedFaqs,
     pricingPlans: cleanedPlans,
     rating: 5.0,
     isUserSubmitted: true,
@@ -3029,16 +3239,23 @@ function openToolPricingModal(productId) {
   if (bestForEl) bestForEl.textContent = `Best for: ${p.bestFor || "All users"}`;
   if (visitLink) visitLink.href = p.website || "#";
 
+  const richPlans = getToolPricingCardsData(p);
   if (listEl) {
+    listEl.className = "sa-pricing-cards-grid";
     listEl.innerHTML = "";
     void listEl.offsetWidth;
-    listEl.innerHTML = plans.map((pl, idx) => `
-      <div class="animated-plan-card" style="animation-delay:${idx * 85}ms;">
-        <div>
-          <span class="plan-card-cycle">${escapeHTML(pl.cycle || "Plan")}</span>
-          <div class="plan-card-name" style="margin-top:8px;">${escapeHTML(pl.planName || "Plan")}</div>
+    listEl.innerHTML = richPlans.map((pl, idx) => `
+      <div class="sa-plan-card sa-modal-plan-anim" style="animation-delay:${idx * 85}ms;">
+        <div class="sa-plan-title">${escapeHTML(pl.planName || "Plan")}</div>
+        <div class="sa-plan-green-pill">
+          <div class="sa-plan-price">${escapeHTML(pl.price || "Free")}</div>
+          <div class="sa-plan-cycle">${escapeHTML(pl.cycle || "Month")}</div>
         </div>
-        <div class="plan-card-amount">${escapeHTML(pl.price || "Free")}</div>
+        <ul class="sa-plan-checklist">
+          ${(pl.features || []).map(feat => `
+            <li><span class="sa-check-mark">✓</span><span>${escapeHTML(feat)}</span></li>
+          `).join("")}
+        </ul>
       </div>
     `).join("");
   }

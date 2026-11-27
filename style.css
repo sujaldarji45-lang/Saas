@@ -3336,8 +3336,14 @@ a {
 }
 
 .pricing-showcase-modal {
-  max-width: 660px;
+  max-width: 960px;
   animation: pricingModalPop 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sa-modal-plan-anim {
+  opacity: 0;
+  transform: translateY(14px) scale(0.97);
+  animation: planCardReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes pricingModalPop {
@@ -3426,4 +3432,512 @@ a {
   margin-top: 18px;
   padding-top: 14px;
   border-top: 1px solid #E2E8F0;
+}
+
+
+/* =========================================================================
+   SAAS ADVISER + G2 INSPIRED PRODUCT PROFILE PAGE (ARCSITE STYLE)
+   ========================================================================= */
+.sa-profile-shell {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  overflow: visible;
+}
+
+.sa-profile-top {
+  padding: 26px 30px 20px;
+  border-bottom: 1px solid #E2E8F0;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+  border-radius: 18px 18px 0 0;
+}
+
+.sa-header-flex {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.sa-brand-block {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.sa-logo-card {
+  width: 78px;
+  height: 78px;
+  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sa-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sa-title-row h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.02em;
+}
+
+.sa-verified-seal {
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #6366F1;
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-grid;
+  place-items: center;
+}
+
+.sa-sub-tagline {
+  color: #475569;
+  font-size: 0.94rem;
+  margin-top: 3px;
+}
+
+.sa-meta-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 0.84rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.sa-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sa-meta-divider {
+  color: #CBD5E1;
+}
+
+.sa-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-sa-review {
+  background: #FFFFFF;
+  color: #0F172A;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+}
+
+.btn-sa-review:hover {
+  border-color: #0F172A;
+  background: #F8FAFC;
+}
+
+.btn-sa-demo {
+  background: #0F2342;
+  color: #FFFFFF;
+  border: 1.5px solid #0F2342;
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(15, 35, 66, 0.22);
+}
+
+.btn-sa-demo:hover {
+  background: #1E3A8A;
+  border-color: #1E3A8A;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+/* SAAS ADVISER STICKY 9-TAB HORIZONTAL NAV BAR */
+.sa-tabs-bar {
+  position: sticky;
+  top: 68px;
+  z-index: 40;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 0 26px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.sa-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 14px 13px;
+  font-family: inherit;
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.sa-tab-btn:hover {
+  color: #10B981;
+}
+
+.sa-tab-btn.active {
+  color: #10B981;
+  border-bottom-color: #10B981;
+  font-weight: 700;
+}
+
+/* MAIN PROFILE BODY LAYOUT */
+.sa-body-grid {
+  display: grid;
+  grid-template-columns: 1fr 290px;
+  gap: 24px;
+  padding: 26px 30px 34px;
+  align-items: start;
+}
+
+.sa-main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.sa-section-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 24px 26px;
+  scroll-margin-top: 132px;
+}
+
+.sa-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.sa-section-heading h2 {
+  font-size: 1.24rem;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+/* RICH FORMATTED DESCRIPTION (SUPPORTS UP TO 40,000 CHARS) */
+.sa-rich-description {
+  color: #1E293B;
+  font-size: 0.96rem;
+  line-height: 1.75;
+  word-break: break-word;
+}
+
+.sa-rich-description p {
+  margin-bottom: 14px;
+}
+
+.sa-rich-description p:last-child {
+  margin-bottom: 0;
+}
+
+.sa-rich-description ul {
+  margin: 10px 0 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sa-rich-description li {
+  color: #1E293B;
+}
+
+.sa-desc-collapsed {
+  max-height: 440px;
+  overflow: hidden;
+  position: relative;
+}
+
+.sa-desc-collapsed::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 76px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #FFFFFF 92%);
+  pointer-events: none;
+}
+
+.sa-show-more-btn {
+  margin-top: 12px;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  color: #0F172A;
+  font-weight: 700;
+  font-size: 0.84rem;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sa-show-more-btn:hover {
+  border-color: #10B981;
+  color: #059669;
+}
+
+/* SAAS ADVISER PRICING CARDS GRID (MATCHING ARCSITE SCREENSHOT) */
+.sa-pricing-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 18px;
+}
+
+.sa-plan-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 20px 18px 22px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sa-plan-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.09);
+}
+
+.sa-plan-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #0F172A;
+  line-height: 1.4;
+  min-height: 40px;
+}
+
+.sa-plan-green-pill {
+  background: #67C5A8;
+  color: #FFFFFF;
+  border-radius: 12px;
+  padding: 14px 18px;
+  width: 86%;
+}
+
+.sa-plan-green-pill .sa-plan-price {
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.sa-plan-green-pill .sa-plan-cycle {
+  font-size: 0.84rem;
+  font-weight: 600;
+  opacity: 0.95;
+  margin-top: 3px;
+}
+
+.sa-plan-checklist {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.sa-plan-checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 0.85rem;
+  color: #1E293B;
+  font-weight: 500;
+}
+
+.sa-check-mark {
+  color: #67C5A8;
+  font-weight: 900;
+  font-size: 0.92rem;
+  flex-shrink: 0;
+}
+
+/* KEY SPECIFICATION & COMPANY DETAILS TABLES */
+.sa-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.sa-spec-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 13px 16px;
+}
+
+.sa-spec-box small {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748B;
+  margin-bottom: 4px;
+}
+
+.sa-spec-box strong {
+  font-size: 0.92rem;
+  color: #0F172A;
+}
+
+/* FAQ ACCORDION */
+.sa-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sa-faq-item {
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  background: #F8FAFC;
+  padding: 14px 16px;
+}
+
+.sa-faq-item summary {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: #0F172A;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sa-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.sa-faq-item p {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #E2E8F0;
+  font-size: 0.88rem;
+  color: #334155;
+  line-height: 1.6;
+}
+
+/* G2 STYLE RIGHT STICKY QUICK JUMP SIDEBAR */
+.sa-right-sidebar {
+  position: sticky;
+  top: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.g2-jump-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.g2-jump-btn {
+  text-align: left;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #1E293B;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.g2-jump-btn:hover,
+.g2-jump-btn.active {
+  border-color: #4F46E5;
+  color: #4F46E5;
+  background: #EEF2FF;
+}
+
+/* PLAN FEATURES INPUT IN STEP 2 BUILDER */
+.pricing-plan-block {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 11px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pricing-plan-top-row {
+  display: grid;
+  grid-template-columns: 28px 1.25fr 0.95fr 0.85fr 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 980px) {
+  .sa-body-grid {
+    grid-template-columns: 1fr;
+  }
+  .sa-right-sidebar {
+    position: static;
+  }
+  .sa-specs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .pricing-plan-top-row {
+    grid-template-columns: 1fr;
+  }
+  .sa-profile-top,
+  .sa-body-grid {
+    padding: 18px;
+  }
 }

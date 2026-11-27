@@ -295,14 +295,14 @@
                 <div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
                     <label class="field-label">Detailed Description *</label>
-                    <small class="muted" id="s2DescCounter">0/2000</small>
+                    <small class="muted" id="s2DescCounter">0/40000</small>
                   </div>
                   <div class="rich-mini-toolbar">
                     <button type="button" class="mini-fmt-btn" onclick="wrapRichText('s2Description', '**')"><strong>B</strong></button>
                     <button type="button" class="mini-fmt-btn" onclick="wrapRichText('s2Description', '_')"><em>I</em></button>
                     <button type="button" class="mini-fmt-btn" onclick="appendBulletLine('s2Description')">• List</button>
                   </div>
-                  <textarea id="s2Description" class="input" rows="4" maxlength="2000" placeholder="Describe your tool in detail..."></textarea>
+                  <textarea id="s2Description" class="input" rows="6" maxlength="40000" placeholder="Describe your tool in detail..."></textarea>
                   <small class="error-msg" id="err-s2-description"></small>
                 </div>
 
@@ -329,8 +329,8 @@
                     </select>
                   </div>
                   <div>
-                    <label class="field-label">Main Benefits</label>
-                    <input type="text" id="s2Benefits" class="input" placeholder="e.g. Save time, increase productivity..." />
+                    <label class="field-label">Free Trial &amp; Billing Cycle (e.g. 14 Days • Yearly, Monthly)</label>
+                    <input type="text" id="s2Benefits" class="input" placeholder="e.g. 14 Days Free Trial • Yearly, Monthly" />
                   </div>
                 </div>
 
@@ -367,6 +367,22 @@
                     <div id="s2PricingPlansList" class="pricing-plans-rows"></div>
                     <small class="error-msg" id="err-s2-plans"></small>
                   </div>
+                </div>
+
+                <div class="form-row mt-12">
+                  <div>
+                    <label class="field-label">Supported Platforms / Deployment (Optional)</label>
+                    <input type="text" id="s2Platforms" class="input" placeholder="e.g. Web, Windows, Mac, iOS, Android" />
+                  </div>
+                  <div>
+                    <label class="field-label">Integrations &amp; API (Optional)</label>
+                    <input type="text" id="s2Integrations" class="input" placeholder="e.g. REST API, Slack, Google Workspace, Zapier" />
+                  </div>
+                </div>
+
+                <div class="mt-12">
+                  <label class="field-label">Custom FAQs (Optional — Format: Question? | Answer, one per line)</label>
+                  <textarea id="s2Faqs" class="input" rows="2" placeholder="Does it offer a free trial? | Yes, a 14-day free trial is available."></textarea>
                 </div>
 
                 <div class="step-actions-between mt-24">
@@ -908,7 +924,7 @@
 
         <div>
           <label class="field-label">Detailed Work Description (min 30 chars) *</label>
-          <textarea id="pDescription" class="input" rows="3" placeholder="Explain what your tool/website does and its main features..." required></textarea>
+          <textarea id="pDescription" class="input" rows="4" maxlength="40000" placeholder="Explain what your tool/website does and its main features..." required></textarea>
           <small class="error-msg" id="err-description"></small>
         </div>
 
